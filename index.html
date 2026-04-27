@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ducati Dealer Forecast Portal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f4f0; min-height: 100vh; }
+  .app { max-width: 900px; margin: 0 auto; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.08); }
+  .header { background: #CC0000; padding: 16px 24px; display: flex; align-items: center; gap: 14px; }
+  .header-title { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 0.04em; }
+  .header-sub { color: rgba(255,255,255,0.75); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .nav { display: flex; border-bottom: 1px solid #e8e6e0; background: #fff; }
+  .nav-btn { padding: 12px 22px; font-size: 13px; color: #888; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .nav-btn.active { color: #CC0000; border-bottom-color: #CC0000; font-weight: 500; }
+  .nav-btn:hover:not(.active) { color: #333; background: #fafafa; }
+  .content { padding: 24px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .card { background: #fff; border: 1px solid #e8e6e0; border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  label { display: block; font-size: 11px; font-weight: 600; color: #888; margin-bottom: 5px; letter-spacing: 0.05em; text-transform: uppercase; }
+  select, input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; background: #fff; color: #222; font-family: inherit; }
+  select:focus, input:focus { outline: none; border-color: #CC0000; box-shadow: 0 0 0 3px rgba(204,0,0,0.1); }
+  .bike-row { display: grid; grid-template-columns: 2fr 70px 1.4fr 1.4fr 32px; gap: 8px; align-items: end; margin-bottom: 8px; }
+  .bike-row-header { display: grid; grid-template-columns: 2fr 70px 1.4fr 1.4fr 32px; gap: 8px; margin-bottom: 6px; }
+  .bike-row-header span { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+  .remove-btn { width: 32px; height: 36px; border: 1px solid #ddd; border-radius: 6px; background: none; cursor: pointer; color: #aaa; font-size: 18px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .remove-btn:hover { border-color: #CC0000; color: #CC0000; }
+  .add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px dashed #ccc; border-radius: 6px; background: none; cursor: pointer; color: #888; font-size: 13px; margin-top: 6px; font-family: inherit; }
+  .add-btn:hover { border-color: #CC0000; color: #CC0000; }
+  .submit-btn { width: 100%; padding: 12px; background: #CC0000; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; letter-spacing: 0.02em; }
+  .submit-btn:hover { background: #aa0000; }
+  .submit-btn:active { transform: scale(0.99); }
+  .success-banner { background: #edfaf3; border: 1px solid #6fcf97; border-radius: 8px; padding: 12px 16px; color: #1a7a40; font-size: 14px; margin-bottom: 16px; display: none; }
+  .error-banner { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; color: #991b1b; font-size: 14px; margin-bottom: 16px; display: none; }
+  .locked-banner { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 24px; color: #991b1b; font-size: 14px; text-align: center; }
+  .week-badge { display: inline-block; background: rgba(204,0,0,0.08); color: #CC0000; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 100px; border: 1px solid rgba(204,0,0,0.2); margin-left: 8px; vertical-align: middle; }
+  .deadline-chip { display: inline-flex; align-items: center; gap: 5px; background: #f5f4f0; border: 1px solid #e0ded8; border-radius: 100px; padding: 3px 10px; font-size: 11px; color: #888; margin-left: 6px; vertical-align: middle; }
+  .deadline-chip.urgent { background: rgba(204,0,0,0.07); border-color: rgba(204,0,0,0.2); color: #CC0000; }
+  .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .metric { background: #f9f8f5; border-radius: 8px; padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .metric-val { font-size: 24px; font-weight: 600; color: #222; }
+  .submissions-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .submissions-table th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e8e6e0; }
+  .submissions-table td { padding: 10px 12px; border-bottom: 1px solid #f0ede8; color: #222; vertical-align: top; word-wrap: break-word; }
+  .submissions-table tr:last-child td { border-bottom: none; }
+  .submissions-table tr:hover td { background: #fafaf8; }
+  .export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #1a6e3a; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .export-btn:hover { background: #145530; }
+  .reg-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 600; }
+  .reg-customer { background: #dbeafe; color: #1e40af; }
+  .reg-demo { background: #fef3c7; color: #92400e; }
+  .reg-self { background: #f3f4f6; color: #4b5563; }
+  .empty-state { text-align: center; padding: 48px; color: #aaa; font-size: 14px; }
+  .dealer-wrap { max-width: 420px; margin: 0 auto; padding: 48px 24px; text-align: center; }
+  .dealer-wrap h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #222; }
+  .dealer-wrap p { font-size: 14px; color: #888; margin-bottom: 24px; }
+  .proceed-btn { width: 100%; padding: 11px; background: #CC0000; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; font-family: inherit; }
+  .proceed-btn:hover:not(:disabled) { background: #aa0000; }
+  .proceed-btn:disabled { background: #e0ded8; color: #aaa; cursor: default; }
+  .delete-btn { padding: 3px 8px; font-size: 11px; border: 1px solid #ddd; border-radius: 5px; background: none; cursor: pointer; color: #aaa; font-family: inherit; }
+  .delete-btn:hover { border-color: #CC0000; color: #CC0000; }
+  .modal-backdrop { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box { background: #fff; border-radius: 12px; padding: 32px 28px; width: 360px; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.18); }
+  .modal-box h3 { font-size: 17px; font-weight: 600; color: #222; margin-bottom: 8px; }
+  .modal-box p { font-size: 13px; color: #888; margin-bottom: 24px; line-height: 1.5; }
+  .modal-dealer { font-weight: 600; color: #222; }
+  .modal-btn-row { display: flex; gap: 10px; }
+  .modal-cancel { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: none; cursor: pointer; font-size: 14px; color: #666; font-family: inherit; }
+  .modal-cancel:hover { background: #f5f4f0; }
+  .modal-confirm { flex: 1; padding: 10px; border: none; border-radius: 8px; background: #CC0000; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; font-family: inherit; }
+  .modal-confirm:hover { background: #aa0000; }
+  .login-overlay { min-height: 500px; display: flex; align-items: center; justify-content: center; background: #f9f8f5; }
+  .login-box { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 36px 32px; width: 340px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+  .login-box h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; color: #222; }
+  .login-box p { font-size: 13px; color: #888; margin-bottom: 22px; }
+  .login-error { font-size: 12px; color: #CC0000; margin-top: 8px; min-height: 16px; }
+  .lock-icon { font-size: 32px; margin-bottom: 14px; }
+  .pw-wrap { position: relative; margin-bottom: 4px; }
+  .pw-wrap input { padding-right: 38px; }
+  .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #aaa; font-size: 15px; padding: 0; line-height: 1; }
+  .pw-hint { font-size: 12px; color: #aaa; margin-bottom: 10px; font-style: italic; }
+  .login-btn { width: 100%; padding: 10px; background: #CC0000; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px; font-family: inherit; }
+  .login-btn:hover { background: #aa0000; }
+  .logout-btn { padding: 6px 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; margin-left: auto; font-family: inherit; }
+  .logout-btn:hover { background: rgba(255,255,255,0.2); }
+  .section-title { font-size: 16px; font-weight: 600; color: #222; }
+  .back-link { background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; text-decoration: underline; margin-top: 12px; display: inline-block; font-family: inherit; }
+  .back-link:hover { color: #555; }
+  .step-label { font-size: 11px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 20px; }
+  .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; display: none; }
+  .spinner { width: 36px; height: 36px; border: 3px solid #eee; border-top-color: #CC0000; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    .bike-row { grid-template-columns: 1fr 60px; grid-template-rows: auto auto auto; }
+    .bike-row > select:first-child { grid-column: 1 / -1; }
+    .bike-row-header { display: none; }
+    .content { padding: 16px; }
+    .admin-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<!-- Delete confirmation modal -->
+<div class="modal-backdrop" id="deleteModal" style="display:none;">
+  <div class="modal-box">
+    <div style="font-size:32px;margin-bottom:12px;">🗑️</div>
+    <h3>Delete this submission?</h3>
+    <p>You are about to delete the forecast from <span class="modal-dealer" id="modalDealerName"></span> for <span class="modal-dealer" id="modalWeekName"></span>.<br><br>This will permanently remove it from the Google Sheet and cannot be undone.</p>
+    <div class="modal-btn-row">
+      <button class="modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmDelete()">Yes, delete it</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:#888;">Submitting forecast...</div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <svg viewBox="0 0 36 36" fill="none" style="width:36px;height:36px;flex-shrink:0;">
+      <rect width="36" height="36" rx="4" fill="rgba(255,255,255,0.15)"/>
+      <path d="M8 10h12l8 8-8 8H8l8-8z" fill="#fff"/>
+      <circle cx="24" cy="18" r="3" fill="rgba(255,255,255,0.5)"/>
+    </svg>
+    <div style="flex:1;">
+      <div class="header-title">Ducati Dealer Forecast Portal</div>
+      <div class="header-sub">Weekly Registration Forecast</div>
+    </div>
+    <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="adminLogout()">Sign out</button>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchTab('dealer')">Dealer Submission</button>
+    <button class="nav-btn" onclick="switchTab('admin')">Admin Dashboard</button>
+  </div>
+
+  <!-- DEALER SECTION -->
+  <div id="tab-dealer" class="section active">
+
+    <!-- Step 1 -->
+    <div id="dealer-step1" class="dealer-wrap">
+      <div style="font-size:40px;margin-bottom:16px;">🏍️</div>
+      <h2>Select Your Dealership</h2>
+      <p>Choose your dealership to get started with your weekly forecast.</p>
+      <label for="dealerPicker" style="text-align:left;">Dealership</label>
+      <select id="dealerPicker"><option value="">— Select dealership —</option></select>
+      <button class="proceed-btn" id="proceedBtn" disabled onclick="goToStep2()">Continue →</button>
+    </div>
+
+    <!-- Step 2: Password -->
+    <div id="dealer-step2" style="display:none;">
+      <div class="dealer-wrap">
+        <div style="font-size:40px;margin-bottom:16px;">🔑</div>
+        <h2 id="step2DealerName"></h2>
+        <div class="step-label">Step 2 of 2 — verify access</div>
+        <label for="dealerPwInput" style="text-align:left;">Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="dealerPwInput" placeholder="Enter your password" onkeydown="if(event.key==='Enter')checkDealerPw()">
+          <button class="pw-toggle" onclick="togglePw('dealerPwInput')">👁</button>
+        </div>
+        <div class="pw-hint">Your password is your league table code name.</div>
+        <div class="login-error" id="dealerLoginError"></div>
+        <button class="login-btn" onclick="checkDealerPw()">Access forecast form</button>
+        <br>
+        <button class="back-link" onclick="backToStep1()">← Choose a different dealership</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Form -->
+    <div id="dealer-form" style="display:none;">
+      <div class="content">
+        <div id="successBanner" class="success-banner">✓ Forecast submitted successfully. Thank you!</div>
+        <div id="errorBanner" class="error-banner">⚠ There was a problem submitting. Please try again or contact your Ducati UK representative.</div>
+        <div id="lockedBanner" style="display:none;">
+          <div class="locked-banner">
+            <div style="font-size:28px;margin-bottom:10px;">🔒</div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Submissions are now closed</div>
+            <div style="font-size:13px;color:#b91c1c;">The weekly forecast deadline (Thursday midday GMT/BST) has passed.<br>Submissions will reopen on Monday.</div>
+          </div>
+        </div>
+        <div id="formContent">
+          <div class="card">
+            <div style="display:flex;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+              <span class="section-title" id="formDealerName"></span>
+              <span class="week-badge" id="weekBadge"></span>
+              <span class="deadline-chip" id="deadlineChip"></span>
+            </div>
+            <p style="font-size:13px;color:#888;margin-bottom:18px;">Add every model you expect to register from this Friday through end of month.</p>
+            <div class="bike-row-header">
+              <span>Model <span style="color:#CC0000">*</span></span>
+              <span>Qty <span style="color:#CC0000">*</span></span>
+              <span>Registration type <span style="color:#CC0000">*</span></span>
+              <span>Last 6 VIN digits <span style="color:#ccc;font-style:italic;font-weight:400;text-transform:none;font-size:10px;">optional</span></span>
+              <span></span>
+            </div>
+            <div id="bikeRows"></div>
+            <button class="add-btn" onclick="addBikeRow()">+ Add another model</button>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button style="padding:10px 16px;border:1px solid #ddd;border-radius:8px;background:none;cursor:pointer;font-size:13px;color:#888;font-family:inherit;" onclick="backToStep1()">← Change dealership</button>
+            <button class="submit-btn" style="flex:1;" onclick="submitForecast()">Submit weekly forecast</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN SECTION -->
+  <div id="tab-admin" class="section">
+    <div id="admin-login" class="login-overlay">
+      <div class="login-box">
+        <div class="lock-icon">🔐</div>
+        <h3>Admin access</h3>
+        <p>Enter the admin password to view and export dealer forecasts.</p>
+        <div class="pw-wrap">
+          <input type="password" id="adminPwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkAdminPw()">
+          <button class="pw-toggle" onclick="togglePw('adminPwInput')">👁</button>
+        </div>
+        <div class="login-error" id="adminLoginError"></div>
+        <button class="login-btn" onclick="checkAdminPw()">Sign in</button>
+      </div>
+    </div>
+    <div id="admin-content" style="display:none;">
+      <div class="content">
+        <div class="admin-grid" id="adminMetrics"></div>
+        <div class="card" style="padding:16px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <span class="section-title" style="margin:0;">Submitted Forecasts</span>
+            <div class="filter-row" style="flex:1;justify-content:flex-end;">
+              <select id="filterDealer" onchange="renderAdmin()" style="width:auto;min-width:170px;"><option value="">All dealers</option></select>
+              <select id="filterWeek" onchange="renderAdmin()" style="width:auto;min-width:120px;"><option value="">All weeks</option></select>
+              <button class="export-btn" onclick="exportExcel()">⬇ Export Excel</button>
+            </div>
+          </div>
+          <div id="adminTable"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzS_iVXASvnsu9qDlD6qnSOtl9NS3Soj4i0JeqtMIQnL-PBfyBRuJ4s3JcF1VN40f3G/exec";
+const ADMIN_PW = "BorgoPanigale2026!";
+let adminAuthed = false;
+let currentDealer = "";
+let submissions = [];
+
+const DEALERS = [
+  { name: "Chris Walker Motorcycles",  pw: "Cross" },
+  { name: "Ducati Alton",              pw: "Pikes Peak" },
+  { name: "Ducati Aylesbury",          pw: "Full Throttle" },
+  { name: "Ducati Bournemouth",        pw: "Lamborghini" },
+  { name: "Ducati Bristol",            pw: "Monster" },
+  { name: "Ducati Cambridge",          pw: "Nightshift" },
+  { name: "Ducati Chelmsford",         pw: "Tricolore" },
+  { name: "Ducati Coventry",           pw: "Streetfighter" },
+  { name: "Ducati Dundee",             pw: "Icon" },
+  { name: "Ducati Glasgow",            pw: "Radar" },
+  { name: "Ducati Nottingham",         pw: "Hyper" },
+  { name: "Ducati Hailsham",           pw: "Dark" },
+  { name: "Ducati Leeds",              pw: "Adventure" },
+  { name: "Ducati London",             pw: "Panigale" },
+  { name: "Ducati Manchester",         pw: "Rizoma" },
+  { name: "Ducati North London",       pw: "Scrambler" },
+  { name: "Ducati Norwich",            pw: "Rally" },
+  { name: "Ducati Oxford",             pw: "Mono RVE" },
+  { name: "Ducati Preston",            pw: "Diavel" },
+  { name: "Ducati Stoke",              pw: "Senna" },
+  { name: "Ducati Sunderland",         pw: "Discovery" },
+  { name: "Ducati Worcester",          pw: "Sport" },
+  { name: "GT Motorcycles Ltd",        pw: "Marquez" },
+  { name: "J&L Motorcycles",           pw: "Enduro" },
+  { name: "Millsport Motorcycles",     pw: "Italia" },
+  { name: "Pro Twins Ltd.",            pw: "Bentley" },
+  { name: "Riders Of Bridgwater Ltd",  pw: "Mono" },
+  { name: "Rosso Motorcycles",         pw: "Desmo" },
+  { name: "The Mansell Collection",    pw: "Travel" },
+];
+
+const MODELS = [
+  "Multistrada V2","Multistrada V2S","Multistrada V2 Travel",
+  "Multistrada V4","Multistrada V4 S","Multistrada V4 Rally","Multistrada V4 RS","Multistrada V4 Pikes Peak",
+  "DesertX","DesertX Rally",
+  "Hypermotard V2","Hypermotard V2 SP","Hypermotard 698 Mono","Hypermotard 698 Mono RVE",
+  "Streetfighter V2","Streetfighter V2 S","Streetfighter V4","Streetfighter V4 S","Streetfighter V4 S Corse",
+  "Monster","Monster +",
+  "Scrambler Icon (2G)","Scrambler Icon Dark (2G)","Scrambler Nightshift (2G)","Scrambler Full Throttle (2G)",
+  "Panigale V4 R","Panigale V4 7G","Panigale V4 S 7G","Panigale V4 S Corse","Panigale V4 Tricolore",
+  "Panigale V4 Lamborghini","Panigale V4 Lamborghini Speciale Cliente",
+  "Panigale V2","Panigale V2 S","Panigale V2 Marc","Panigale V2 Pecco",
+  "Diavel V4 RS","Diavel V4","XDiavel V4",
+  "Desmo 450 MX","Desmo 450 MX Factory",
+  "Formula 73","Superleggera Centenario","Superleggera Tricolore",
+  "Other"
+];
+
+const REG_TYPES = ["Customer","Demo","Self-registration"];
+
+// ── Deadline logic ────────────────────────────────────────────────────────────
+function isSubmissionLocked() {
+  const now = new Date();
+  const ukStr = now.toLocaleString('en-GB', { timeZone:'Europe/London', hour12:false, weekday:'short', hour:'2-digit', minute:'2-digit' });
+  const parts = ukStr.split(', ');
+  const day = parts[0];
+  const tp = (parts[1]||'0:0').split(':');
+  const mins = parseInt(tp[0])*60 + parseInt(tp[1]);
+  if (day==='Thu' && mins>=720) return true;
+  if (['Fri','Sat','Sun'].includes(day)) return true;
+  return false;
+}
+
+function getDeadlineInfo() {
+  const now = new Date();
+  const ukStr = now.toLocaleString('en-GB', { timeZone:'Europe/London', hour12:false, weekday:'short', hour:'2-digit', minute:'2-digit' });
+  const parts = ukStr.split(', ');
+  const day = parts[0];
+  const tp = (parts[1]||'0:0').split(':');
+  const hour = parseInt(tp[0]), min = parseInt(tp[1]);
+  if (isSubmissionLocked()) return { locked:true };
+  const dayOrder = { Mon:0, Tue:1, Wed:2, Thu:3 };
+  const daysLeft = 3 - (dayOrder[day]||0);
+  const minsLeft = daysLeft*1440 + 720 - (hour*60+min);
+  const hoursLeft = Math.floor(minsLeft/60), minsRem = minsLeft%60;
+  if (daysLeft===0) return { locked:false, urgent:true, label:`Closes in ${hoursLeft}h ${minsRem}m` };
+  return { locked:false, urgent:false, label:`Closes Thu 12:00 GMT/BST` };
+}
+
+function getWeekLabel() {
+  const now = new Date();
+  const ukDay = now.toLocaleString('en-GB', { timeZone:'Europe/London', weekday:'short' });
+  const dayMap = { Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6 };
+  const d = dayMap[ukDay] ?? now.getDay();
+  const diff = d<=4 ? (4-d) : (11-d);
+  const fri = new Date(now); fri.setDate(now.getDate()+diff);
+  return `w/c ${fri.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`;
+}
+
+// ── Dealer picker ─────────────────────────────────────────────────────────────
+function initDealerPicker() {
+  const sel = document.getElementById('dealerPicker');
+  DEALERS.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.name; o.textContent = d.name;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', () => {
+    document.getElementById('proceedBtn').disabled = !sel.value;
+  });
+}
+
+function goToStep2() {
+  const val = document.getElementById('dealerPicker').value;
+  if (!val) return;
+  currentDealer = val;
+  document.getElementById('step2DealerName').textContent = val;
+  document.getElementById('dealerPwInput').value = '';
+  document.getElementById('dealerLoginError').textContent = '';
+  document.getElementById('dealer-step1').style.display = 'none';
+  document.getElementById('dealer-step2').style.display = 'block';
+  setTimeout(() => document.getElementById('dealerPwInput').focus(), 100);
+}
+
+function backToStep1() {
+  document.getElementById('dealer-step1').style.display = 'block';
+  document.getElementById('dealer-step2').style.display = 'none';
+  document.getElementById('dealer-form').style.display = 'none';
+  currentDealer = '';
+}
+
+function checkDealerPw() {
+  const entered = document.getElementById('dealerPwInput').value.trim();
+  const dealer = DEALERS.find(d => d.name === currentDealer);
+  if (!dealer) return;
+  if (entered.toLowerCase() === dealer.pw.toLowerCase()) {
+    document.getElementById('dealer-step2').style.display = 'none';
+    proceedToForm();
+  } else {
+    document.getElementById('dealerLoginError').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('dealerPwInput').value = '';
+    document.getElementById('dealerPwInput').focus();
+  }
+}
+
+function proceedToForm() {
+  document.getElementById('dealer-form').style.display = 'block';
+  document.getElementById('formDealerName').textContent = currentDealer;
+  document.getElementById('weekBadge').textContent = getWeekLabel();
+  document.getElementById('bikeRows').innerHTML = '';
+  document.getElementById('successBanner').style.display = 'none';
+  document.getElementById('errorBanner').style.display = 'none';
+  const info = getDeadlineInfo();
+  const chip = document.getElementById('deadlineChip');
+  chip.textContent = info.locked ? 'Submissions closed' : info.label;
+  chip.className = 'deadline-chip' + (info.urgent ? ' urgent' : '');
+  if (info.locked) {
+    document.getElementById('lockedBanner').style.display = 'block';
+    document.getElementById('formContent').style.display = 'none';
+  } else {
+    document.getElementById('lockedBanner').style.display = 'none';
+    document.getElementById('formContent').style.display = 'block';
+    addBikeRow();
+  }
+}
+
+function addBikeRow() {
+  if (isSubmissionLocked()) return;
+  const id = Date.now();
+  const div = document.createElement('div');
+  div.className = 'bike-row'; div.id = 'row-' + id;
+  div.innerHTML = `
+    <select><option value="">Select model</option>${MODELS.map(m=>`<option>${m}</option>`).join('')}</select>
+    <input type="number" min="1" max="99" value="1" style="text-align:center;">
+    <select><option value="">Select type</option>${REG_TYPES.map(r=>`<option>${r}</option>`).join('')}</select>
+    <input type="text" placeholder="e.g. 123456" maxlength="50">
+    <button class="remove-btn" onclick="removeRow('row-${id}')" title="Remove">×</button>
+  `;
+  document.getElementById('bikeRows').appendChild(div);
+}
+
+function removeRow(id) {
+  if (document.querySelectorAll('.bike-row').length <= 1) return;
+  document.getElementById(id)?.remove();
+}
+
+async function submitForecast() {
+  if (isSubmissionLocked()) { alert('The submission deadline has passed. Submissions reopen on Monday.'); return; }
+  const rows = document.querySelectorAll('.bike-row');
+  const bikes = []; let valid = true;
+  rows.forEach(row => {
+    const sels = row.querySelectorAll('select'), inps = row.querySelectorAll('input');
+    const model = sels[0].value, qty = parseInt(inps[0].value)||0, regType = sels[1].value, vin = inps[1].value.trim();
+    sels[0].style.borderColor = ''; sels[1].style.borderColor = '';
+    if (!model||!regType||qty<1) {
+      valid = false;
+      if (!model) sels[0].style.borderColor = '#CC0000';
+      if (!regType) sels[1].style.borderColor = '#CC0000';
+      return;
+    }
+    bikes.push({ model, qty, regType, vin });
+  });
+  if (!valid) { alert('Please fill in all required fields for each row.'); return; }
+  if (!bikes.length) { alert('Please add at least one bike.'); return; }
+
+  const payload = {
+    dealer: currentDealer,
+    week: getWeekLabel(),
+    date: new Date().toLocaleDateString('en-GB'),
+    time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}),
+    bikes
+  };
+
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('successBanner').style.display = 'none';
+  document.getElementById('errorBanner').style.display = 'none';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('successBanner').style.display = 'block';
+    document.getElementById('successBanner').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    document.getElementById('bikeRows').innerHTML = '';
+    addBikeRow();
+  } catch(err) {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('errorBanner').style.display = 'block';
+    document.getElementById('errorBanner').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+function checkAdminPw() {
+  const val = document.getElementById('adminPwInput').value;
+  if (val === ADMIN_PW) {
+    adminAuthed = true;
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    document.getElementById('logoutBtn').style.display = 'block';
+    loadAdminData();
+  } else {
+    document.getElementById('adminLoginError').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('adminPwInput').value = '';
+    document.getElementById('adminPwInput').focus();
+  }
+}
+
+function adminLogout() {
+  adminAuthed = false;
+  submissions = [];
+  document.getElementById('admin-login').style.display = 'flex';
+  document.getElementById('admin-content').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminLoginError').textContent = '';
+}
+
+async function loadAdminData() {
+  document.getElementById('adminTable').innerHTML = '<div class="empty-state">Loading submissions...</div>';
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=get');
+    const json = await res.json();
+    // Group flat rows back into submissions by dealer+week+date+time
+    const grouped = {};
+    (json.submissions || []).forEach(row => {
+      if (!row.Dealer) return;
+      const submitId = String(row['Submit ID'] || '');
+      const key = submitId || `${row.Dealer}||${row.Week}||${row.Date}||${row.Time}`;
+      if (!grouped[key]) grouped[key] = { dealer: row.Dealer, week: row.Week, date: row.Date, time: row.Time, id: key, submitId: submitId, bikes: [] };
+      grouped[key].bikes.push({ model: row.Model, qty: Number(row.Quantity)||0, regType: row['Registration Type'], vin: row['VIN Digits'] || '' });
+    });
+    submissions = Object.values(grouped);
+    renderAdmin();
+  } catch(err) {
+    document.getElementById('adminTable').innerHTML = '<div class="empty-state">Could not load data. Please refresh and try again.</div>';
+  }
+}
+
+function updateAdminFilters() {
+  const fd = document.getElementById('filterDealer'), fw = document.getElementById('filterWeek');
+  const curD = fd.value, curW = fw.value;
+  fd.innerHTML = '<option value="">All dealers</option>';
+  fw.innerHTML = '<option value="">All weeks</option>';
+  [...new Set(submissions.map(s=>s.dealer))].sort().forEach(d => { const o=document.createElement('option');o.value=d;o.textContent=d;fd.appendChild(o); });
+  [...new Set(submissions.map(s=>s.week))].forEach(w => { const o=document.createElement('option');o.value=w;o.textContent=w;fw.appendChild(o); });
+  if (curD) fd.value=curD; if (curW) fw.value=curW;
+}
+
+function getFiltered() {
+  const fd = document.getElementById('filterDealer')?.value||'';
+  const fw = document.getElementById('filterWeek')?.value||'';
+  return submissions.filter(s=>(!fd||s.dealer===fd)&&(!fw||s.week===fw));
+}
+
+function renderAdmin() {
+  if (!adminAuthed) return;
+  updateAdminFilters();
+  const filtered = getFiltered();
+  const totalUnits = filtered.reduce((a,s)=>a+s.bikes.reduce((b,r)=>b+r.qty,0),0);
+  const uniqueDealers = new Set(filtered.map(s=>s.dealer)).size;
+  const custUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Customer').reduce((c,b)=>c+b.qty,0),0);
+  const demoUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Demo').reduce((c,b)=>c+b.qty,0),0);
+  const selfUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Self-registration').reduce((c,b)=>c+b.qty,0),0);
+  const lockInfo = getDeadlineInfo();
+  const lockNote = lockInfo.locked
+    ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fca5a5;border-radius:100px;padding:3px 10px;font-size:11px;color:#CC0000;margin-left:8px;">🔒 Submissions closed</span>`
+    : `<span style="display:inline-flex;align-items:center;gap:5px;background:#f9f8f5;border:1px solid #e0ded8;border-radius:100px;padding:3px 10px;font-size:11px;color:#888;margin-left:8px;">Open — ${lockInfo.label}</span>`;
+
+  document.getElementById('adminMetrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Submissions</div><div class="metric-val">${filtered.length}</div></div>
+    <div class="metric"><div class="metric-label">Dealers reporting</div><div class="metric-val">${uniqueDealers}<span style="font-size:14px;color:#aaa;font-weight:400;"> / ${DEALERS.length}</span></div></div>
+    <div class="metric"><div class="metric-label">Total units</div><div class="metric-val">${totalUnits}</div></div>
+    <div class="metric"><div class="metric-label">Customer</div><div class="metric-val">${custUnits}</div></div>
+    <div class="metric"><div class="metric-label">Demo</div><div class="metric-val">${demoUnits}</div></div>
+    <div class="metric"><div class="metric-label">Self-reg</div><div class="metric-val">${selfUnits}</div></div>
+  `;
+
+  const refreshBtn = `<button onclick="loadAdminData()" style="padding:7px 14px;border:1px solid #ddd;border-radius:6px;background:none;cursor:pointer;font-size:12px;color:#888;font-family:inherit;margin-left:8px;">↻ Refresh</button>`;
+
+  if (!filtered.length) {
+    document.getElementById('adminTable').innerHTML = `
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:12px;flex-wrap:wrap;">
+        <span class="section-title" style="margin:0;">Submitted Forecasts</span>${lockNote}${refreshBtn}
+      </div>
+      <div class="empty-state">No submissions yet${submissions.length>0?' for the selected filters':' — dealers have not submitted yet'}.</div>`;
+    return;
+  }
+
+  const rows = filtered.map(s=>`
+    <tr>
+      <td style="width:21%;font-weight:600;">${s.dealer}</td>
+      <td style="width:11%;">${s.week}</td>
+      <td style="width:12%;color:#aaa;font-size:12px;">${s.date}<br>${s.time||''}</td>
+      <td style="width:51%;">${s.bikes.map(b=>`
+        <div style="margin-bottom:5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+          <span style="font-weight:500;">${b.model}</span>
+          <span style="color:#aaa;font-size:12px;">× ${b.qty}</span>
+          <span class="reg-badge ${b.regType==='Customer'?'reg-customer':b.regType==='Demo'?'reg-demo':'reg-self'}">${b.regType}</span>
+          ${b.vin?`<span style="font-size:11px;color:#aaa;">VIN: ${b.vin}</span>`:''}
+        </div>`).join('')}</td>
+      <td style="width:5%;text-align:right;vertical-align:middle;">
+        <button class="delete-btn" onclick="openDeleteModal('${s.id.replace(/'/g,"\\'")}','${s.dealer.replace(/'/g,"\\'")}','${s.week.replace(/'/g,"\\'")}')">Delete</button>
+      </td>
+    </tr>`).join('');
+
+  document.getElementById('adminTable').innerHTML = `
+    <div style="display:flex;align-items:center;gap:4px;margin-bottom:12px;flex-wrap:wrap;">
+      <span class="section-title" style="margin:0;">Submitted Forecasts</span>${lockNote}${refreshBtn}
+    </div>
+    <table class="submissions-table">
+      <thead><tr>
+        <th style="width:21%;">Dealer</th><th style="width:11%;">Week</th>
+        <th style="width:12%;">Submitted</th><th style="width:51%;">Bikes</th><th style="width:5%;"></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function exportExcel() {
+  const filtered = getFiltered();
+  if (!filtered.length) { alert('No data to export for the current filter.'); return; }
+  const wb = XLSX.utils.book_new();
+  const allRows = [['Dealer','Week','Date submitted','Time submitted','Model','Quantity','Registration type','VIN digits (last 6)']];
+  filtered.forEach(s=>s.bikes.forEach(b=>allRows.push([s.dealer,s.week,s.date,s.time||'',b.model,b.qty,b.regType,b.vin||''])));
+  const ws1 = XLSX.utils.aoa_to_sheet(allRows);
+  ws1['!cols'] = [26,14,14,10,36,10,20,20].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, 'All submissions');
+
+  const modelSummary = {};
+  filtered.forEach(s=>s.bikes.forEach(b=>{
+    if(!modelSummary[b.model]) modelSummary[b.model]={Customer:0,Demo:0,'Self-registration':0};
+    modelSummary[b.model][b.regType]=(modelSummary[b.model][b.regType]||0)+b.qty;
+  }));
+  const sumRows = [['Model','Customer','Demo','Self-registration','Total']];
+  Object.entries(modelSummary).sort().forEach(([m,v])=>{
+    const t=(v.Customer||0)+(v.Demo||0)+(v['Self-registration']||0);
+    sumRows.push([m,v.Customer||0,v.Demo||0,v['Self-registration']||0,t]);
+  });
+  const tC=sumRows.slice(1).reduce((a,r)=>a+r[1],0),tD=sumRows.slice(1).reduce((a,r)=>a+r[2],0),tS=sumRows.slice(1).reduce((a,r)=>a+r[3],0);
+  sumRows.push(['TOTAL',tC,tD,tS,tC+tD+tS]);
+  const ws2 = XLSX.utils.aoa_to_sheet(sumRows);
+  ws2['!cols'] = [36,12,12,18,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws2, 'Summary by model');
+
+  const dealerSummary = {};
+  filtered.forEach(s=>{
+    if(!dealerSummary[s.dealer]) dealerSummary[s.dealer]={Customer:0,Demo:0,'Self-registration':0};
+    s.bikes.forEach(b=>{dealerSummary[s.dealer][b.regType]=(dealerSummary[s.dealer][b.regType]||0)+b.qty;});
+  });
+  const dRows = [['Dealer','Customer','Demo','Self-registration','Total']];
+  Object.entries(dealerSummary).sort().forEach(([d,v])=>{
+    const t=(v.Customer||0)+(v.Demo||0)+(v['Self-registration']||0);
+    dRows.push([d,v.Customer||0,v.Demo||0,v['Self-registration']||0,t]);
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(dRows);
+  ws3['!cols'] = [28,12,12,18,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws3, 'Summary by dealer');
+
+  XLSX.writeFile(wb, `Ducati_Forecast_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── Delete modal ──────────────────────────────────────────────────────────────
+let pendingDeleteId = null;
+
+function openDeleteModal(id, dealer, week) {
+  pendingDeleteId = id;
+  document.getElementById('modalDealerName').textContent = dealer;
+  document.getElementById('modalWeekName').textContent = week;
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  pendingDeleteId = null;
+  document.getElementById('deleteModal').style.display = 'none';
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  const submission = submissions.find(s => s.id === pendingDeleteId);
+  if (!submission) { closeDeleteModal(); return; }
+  closeDeleteModal();
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete',
+        submitId: submission.submitId || submission.id
+      })
+    });
+  } catch(err) {}
+  await new Promise(r => setTimeout(r, 2000));
+  document.getElementById('loadingOverlay').style.display = 'none';
+  await loadAdminData();
+}
+
+function togglePw(id) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&tab==='dealer')||(i===1&&tab==='admin')));
+  document.getElementById('tab-dealer').classList.toggle('active', tab==='dealer');
+  document.getElementById('tab-admin').classList.toggle('active', tab==='admin');
+}
+
+initDealerPicker();
+</script>
+</body>
+</html>
