@@ -550,7 +550,7 @@ function renderAdmin() {
   const filtered = getFiltered();
   const totalUnits = filtered.reduce((a,s)=>a+s.bikes.reduce((b,r)=>b+r.qty,0),0);
   const uniqueDealers = new Set(filtered.map(s=>s.dealer)).size;
-  const custUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Customer').reduce((c,b)=>c+b.qty,0),0);
+  const custUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Client').reduce((c,b)=>c+b.qty,0),0);
   const demoUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Demo').reduce((c,b)=>c+b.qty,0),0);
   const selfUnits = filtered.reduce((a,s)=>a+s.bikes.filter(b=>b.regType==='Self-registration').reduce((c,b)=>c+b.qty,0),0);
   const lockInfo = getDeadlineInfo();
@@ -587,7 +587,7 @@ function renderAdmin() {
         <div style="margin-bottom:5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
           <span style="font-weight:500;">${b.model}</span>
           <span style="color:#aaa;font-size:12px;">× ${b.qty}</span>
-          <span class="reg-badge ${b.regType==='Customer'?'reg-customer':b.regType==='Demo'?'reg-demo':'reg-self'}">${b.regType}</span>
+          <span class="reg-badge ${b.regType==='Client'?'reg-customer':b.regType==='Demo'?'reg-demo':'reg-self'}">${b.regType}</span>
           ${b.vin?`<span style="font-size:11px;color:#aaa;">VIN: ${b.vin}</span>`:''}
         </div>`).join('')}</td>
       <td style="width:5%;text-align:right;vertical-align:middle;">
@@ -620,13 +620,13 @@ function exportExcel() {
 
   const modelSummary = {};
   filtered.forEach(s=>s.bikes.forEach(b=>{
-    if(!modelSummary[b.model]) modelSummary[b.model]={Customer:0,Demo:0,'Self-registration':0};
+    if(!modelSummary[b.model]) modelSummary[b.model]={'Client':0,Demo:0,'Self-registration':0};
     modelSummary[b.model][b.regType]=(modelSummary[b.model][b.regType]||0)+b.qty;
   }));
   const sumRows = [['Model','Customer','Demo','Self-registration','Total']];
   Object.entries(modelSummary).sort().forEach(([m,v])=>{
-    const t=(v.Customer||0)+(v.Demo||0)+(v['Self-registration']||0);
-    sumRows.push([m,v.Customer||0,v.Demo||0,v['Self-registration']||0,t]);
+    const t=(v['Client']||0)+(v.Demo||0)+(v['Self-registration']||0);
+    sumRows.push([m,v['Client']||0,v.Demo||0,v['Self-registration']||0,t]);
   });
   const tC=sumRows.slice(1).reduce((a,r)=>a+r[1],0),tD=sumRows.slice(1).reduce((a,r)=>a+r[2],0),tS=sumRows.slice(1).reduce((a,r)=>a+r[3],0);
   sumRows.push(['TOTAL',tC,tD,tS,tC+tD+tS]);
@@ -636,13 +636,13 @@ function exportExcel() {
 
   const dealerSummary = {};
   filtered.forEach(s=>{
-    if(!dealerSummary[s.dealer]) dealerSummary[s.dealer]={Customer:0,Demo:0,'Self-registration':0};
+    if(!dealerSummary[s.dealer]) dealerSummary[s.dealer]={'Client':0,Demo:0,'Self-registration':0};
     s.bikes.forEach(b=>{dealerSummary[s.dealer][b.regType]=(dealerSummary[s.dealer][b.regType]||0)+b.qty;});
   });
   const dRows = [['Dealer','Customer','Demo','Self-registration','Total']];
   Object.entries(dealerSummary).sort().forEach(([d,v])=>{
-    const t=(v.Customer||0)+(v.Demo||0)+(v['Self-registration']||0);
-    dRows.push([d,v.Customer||0,v.Demo||0,v['Self-registration']||0,t]);
+    const t=(v['Client']||0)+(v.Demo||0)+(v['Self-registration']||0);
+    dRows.push([d,v['Client']||0,v.Demo||0,v['Self-registration']||0,t]);
   });
   const ws3 = XLSX.utils.aoa_to_sheet(dRows);
   ws3['!cols'] = [28,12,12,18,10].map(w=>({wch:w}));
