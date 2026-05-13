@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-4">
+  <h1 class="text-xl font-semibold">{{ dealer.name }}</h1>
+  <p class="text-sm text-slate-500">
+    Currently expected availability over the next 12 months, across UK / Sweden / Norway combined.
+    Numbers are estimates and may shift week-to-week.
+    {% if last_import %}Data refreshed {{ last_import }}.{% endif %}
+  </p>
+  {% if unmapped_orders %}
+    <p class="text-xs text-amber-700 mt-1">
+      Note: {{ unmapped_orders }} order(s) couldn't be matched to a plan model and are excluded from the figures.
+    </p>
+  {% endif %}
+</div>
+
+<h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-2">Availability by model</h2>
+<div class="overflow-x-auto bg-white border border-slate-200 rounded shadow-sm">
+  <table class="text-sm w-full">
+    <thead class="bg-slate-100 text-slate-600">
+      <tr>
+        <th class="text-left px-3 py-2 sticky left-0 bg-slate-100">Model</th>
+        <th class="text-left px-3 py-2">Soonest</th>
+        {% for (y, m) in months %}
+          <th class="px-2 py-2 text-center" title="{{ y }}">{{ month_names[m-1] }}<br><span class="text-xs text-slate-400">'{{ y % 100 }}</span></th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="border-t border-slate-100">
+        <td class="px-3 py-2 sticky left-0 bg-white">
+          <div class="font-medium">{{ r.plan_model }}</div>
+          <div class="text-xs text-slate-400">{{ r.plan_super }}</div>
+        </td>
+        <td class="px-3 py-2 whitespace-nowrap">
+          {% if r.soonest %}
+            <span class="text-emerald-700 font-medium">{{ month_names[r.soonest[1]-1] }} '{{ r.soonest[0] % 100 }}</span>
+          {% else %}
+            <span class="text-rose-600 text-xs">none in window</span>
+          {% endif %}
+        </td>
+        {% for cell in r.cells %}
+          {% set v = cell.available %}
+          <td class="px-2 py-2 text-center align-middle">
+            <span class="inline-block w-3 h-3 rounded-full
+                         {% if v >= 10 %}bg-emerald-500
+                         {% elif v >= 1 %}bg-amber-400
+                         {% else %}bg-rose-500{% endif %}"></span>
+            <span class="sr-only">{% if v >= 10 %}good{% elif v >= 1 %}limited{% else %}full{% endif %}</span>
+          </td>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr><td colspan="14" class="px-3 py-6 text-center text-slate-500">
+        No data yet — ask the admin to upload the plan and orders files.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="text-xs text-slate-500 mt-2 flex flex-wrap gap-x-4 gap-y-1">
+  <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-emerald-500"></span> Good availability</span>
+  <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-amber-400"></span> Limited</span>
+  <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-rose-500"></span> Full</span>
+</div>
+
+<h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500 mt-8 mb-2">Your committed orders</h2>
+<div class="bg-white border border-slate-200 rounded shadow-sm overflow-x-auto">
+  <table class="text-sm w-full">
+    <thead class="bg-slate-100 text-slate-600">
+      <tr>
+        <th class="text-left px-3 py-2">Order #</th>
+        <th class="text-left px-3 py-2">Model</th>
+        <th class="text-left px-3 py-2">Colour</th>
+        <th class="text-left px-3 py-2">Type</th>
+        <th class="text-left px-3 py-2">End customer</th>
+        <th class="text-left px-3 py-2">Requested</th>
+        <th class="text-left px-3 py-2">Confirmed delivery</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in own_orders %}
+      <tr class="border-t border-slate-100">
+        <td class="px-3 py-2 font-mono text-xs">{{ o.order_number }}</td>
+        <td class="px-3 py-2">{{ o.bike_model }}</td>
+        <td class="px-3 py-2">{{ o.bike_color }}</td>
+        <td class="px-3 py-2">{{ o.bike_type }}</td>
+        <td class="px-3 py-2">{{ o.end_customer_status }}</td>
+        <td class="px-3 py-2">{{ o.request_date or '' }}</td>
+        <td class="px-3 py-2">{{ o.confirmed_delivery_date or '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="px-3 py-4 text-center text-slate-400">
+        No orders found for your dealer code{% if not dealer.dealer_code %} (no dealer code set — ask the admin){% endif %}.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Upload data</h1>
+<div class="bg-white border border-slate-200 rounded p-6 max-w-xl">
+  <p class="text-sm text-slate-600 mb-4">
+    Drop in the latest plan workbook and orders export. This replaces all current data.
+  </p>
+  <form method="post" enctype="multipart/form-data" class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium mb-1">Plan workbook (.xlsx)</label>
+      <input type="file" name="plan_file" accept=".xlsx" required class="block w-full text-sm">
+      <p class="text-xs text-slate-400 mt-1">e.g. <code>20260506 - Plan - DUK FC.xlsx</code></p>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Orders export (.xlsx)</label>
+      <input type="file" name="orders_file" accept=".xlsx" required class="block w-full text-sm">
+      <p class="text-xs text-slate-400 mt-1">e.g. <code>data (36).xlsx</code></p>
+    </div>
+    <button class="bg-slate-800 text-white rounded px-4 py-2 hover:bg-slate-700">Parse & publish</button>
+  </form>
+</div>
+{% endblock %}

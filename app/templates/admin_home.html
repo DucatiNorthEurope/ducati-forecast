@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Admin</h1>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white border border-slate-200 rounded p-4">
+    <div class="text-xs uppercase text-slate-500">Dealers</div>
+    <div class="text-2xl font-semibold">{{ dealer_count }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded p-4">
+    <div class="text-xs uppercase text-slate-500">Orders loaded</div>
+    <div class="text-2xl font-semibold">{{ order_count }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded p-4">
+    <div class="text-xs uppercase text-slate-500">Plan rows</div>
+    <div class="text-2xl font-semibold">{{ plan_count }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded p-4 {% if unmapped %}border-amber-300 bg-amber-50{% endif %}">
+    <div class="text-xs uppercase text-slate-500">Unmapped SKUs</div>
+    <div class="text-2xl font-semibold">{{ unmapped }}</div>
+    {% if unmapped %}<a href="{{ url_for('admin_mapping') }}" class="text-xs text-amber-700 underline">Resolve →</a>{% endif %}
+  </div>
+</div>
+
+<div class="bg-white border border-slate-200 rounded p-4 mb-4">
+  <h2 class="font-medium mb-2">Last import</h2>
+  {% if last_import %}
+    <div class="text-sm text-slate-600">
+      <div>At <span class="font-medium">{{ last_import.imported_at }}</span></div>
+      <div>Plan: <span class="font-mono text-xs">{{ last_import.plan_filename }}</span> — {{ last_import.plan_rows }} rows</div>
+      <div>Orders: <span class="font-mono text-xs">{{ last_import.orders_filename }}</span> — {{ last_import.order_rows }} rows</div>
+    </div>
+  {% else %}
+    <p class="text-sm text-slate-500">No data has been uploaded yet.</p>
+  {% endif %}
+  <a href="{{ url_for('admin_upload') }}" class="mt-3 inline-block bg-slate-800 text-white text-sm px-3 py-2 rounded hover:bg-slate-700">Upload new data</a>
+</div>
+{% endblock %}

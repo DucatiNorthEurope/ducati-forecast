@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Dealers</h1>
+
+<div class="bg-white border border-slate-200 rounded shadow-sm overflow-x-auto mb-6">
+  <table class="text-sm w-full">
+    <thead class="bg-slate-100 text-slate-600">
+      <tr>
+        <th class="text-left px-3 py-2">Password</th>
+        <th class="text-left px-3 py-2">Name</th>
+        <th class="text-left px-3 py-2">Country</th>
+        <th class="text-left px-3 py-2">Dealer code</th>
+        <th class="px-3 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="border-t border-slate-100">
+        <form method="post" action="{{ url_for('admin_dealers_save') }}">
+          <input type="hidden" name="id" value="{{ r.id }}">
+          <td class="px-3 py-2"><input name="password" value="{{ r.password }}" required
+                class="border border-slate-300 rounded px-2 py-1 text-sm w-32"></td>
+          <td class="px-3 py-2"><input name="name" value="{{ r.name }}" required
+                class="border border-slate-300 rounded px-2 py-1 text-sm w-48"></td>
+          <td class="px-3 py-2">
+            <select name="country" class="border border-slate-300 rounded px-2 py-1 text-sm">
+              {% for c in countries %}
+                <option value="{{ c }}" {% if r.country == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2">
+            <select name="dealer_code" class="border border-slate-300 rounded px-2 py-1 text-sm w-64">
+              <option value="">— none —</option>
+              {% for d in dealer_codes %}
+                <option value="{{ d.dealer_code }}" {% if r.dealer_code == d.dealer_code %}selected{% endif %}>
+                  {{ d.dealer }} ({{ d.dealer_code }})
+                </option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2 text-right whitespace-nowrap">
+            <button class="text-xs bg-slate-800 text-white rounded px-2 py-1 hover:bg-slate-700">Save</button>
+          </td>
+        </form>
+        <td class="px-3 py-2">
+          <form method="post" action="{{ url_for('admin_dealers_delete') }}"
+                onsubmit="return confirm('Delete dealer {{ r.name }}?');">
+            <input type="hidden" name="id" value="{{ r.id }}">
+            <button class="text-xs text-rose-600 hover:underline">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      <tr class="border-t border-slate-200 bg-slate-50">
+        <form method="post" action="{{ url_for('admin_dealers_save') }}">
+          <td class="px-3 py-2"><input name="password" required placeholder="new password"
+                class="border border-slate-300 rounded px-2 py-1 text-sm w-32"></td>
+          <td class="px-3 py-2"><input name="name" required placeholder="Dealer name"
+                class="border border-slate-300 rounded px-2 py-1 text-sm w-48"></td>
+          <td class="px-3 py-2">
+            <select name="country" class="border border-slate-300 rounded px-2 py-1 text-sm">
+              {% for c in countries %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2">
+            <select name="dealer_code" class="border border-slate-300 rounded px-2 py-1 text-sm w-64">
+              <option value="">— none —</option>
+              {% for d in dealer_codes %}
+                <option value="{{ d.dealer_code }}">{{ d.dealer }} ({{ d.dealer_code }})</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2 text-right whitespace-nowrap">
+            <button class="text-xs bg-emerald-700 text-white rounded px-2 py-1 hover:bg-emerald-600">Add</button>
+          </td>
+        </form>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="bg-white border border-slate-200 rounded p-4 max-w-md">
+  <h2 class="font-medium mb-2">Admin password</h2>
+  <form method="post" action="{{ url_for('admin_set_admin_password') }}" class="flex gap-2">
+    <input name="admin_password" value="{{ admin_pw }}" required
+           class="border border-slate-300 rounded px-2 py-1 text-sm flex-1">
+    <button class="bg-slate-800 text-white text-sm rounded px-3 py-1 hover:bg-slate-700">Update</button>
+  </form>
+  <p class="text-xs text-slate-400 mt-1">Used to log in to this admin area.</p>
+</div>
+{% endblock %}

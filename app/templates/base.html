@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Bike availability{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="font-semibold text-slate-700">Bike availability</div>
+      <nav class="text-sm">
+        {% if session.get('admin') %}
+          <a href="{{ url_for('admin_home') }}" class="mr-3 hover:underline">Admin</a>
+          <a href="{{ url_for('admin_upload') }}" class="mr-3 hover:underline">Upload</a>
+          <a href="{{ url_for('admin_mapping') }}" class="mr-3 hover:underline">Mapping</a>
+          <a href="{{ url_for('admin_embargoes') }}" class="mr-3 hover:underline">Embargoes</a>
+          <a href="{{ url_for('admin_dealers') }}" class="mr-3 hover:underline">Dealers</a>
+          <a href="{{ url_for('logout') }}" class="text-slate-500 hover:underline">Log out</a>
+        {% elif session.get('dealer_pw') %}
+          <a href="{{ url_for('logout') }}" class="text-slate-500 hover:underline">Log out</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="mb-3 px-3 py-2 rounded text-sm
+                      {% if cat == 'error' %}bg-rose-100 text-rose-800
+                      {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
