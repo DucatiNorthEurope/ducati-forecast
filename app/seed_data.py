@@ -48,8 +48,9 @@ INITIAL_MATERIAL_MAP = [
 def seed(con):
     for prefix, p_super, p_model in INITIAL_MATERIAL_MAP:
         con.execute(
-            "INSERT OR IGNORE INTO material_map(material_prefix, plan_super, plan_model, status) "
-            "VALUES(?,?,?, 'active')",
+            "INSERT INTO material_map(material_prefix, plan_super, plan_model, status) "
+            "VALUES(?,?,?, 'active') "
+            "ON CONFLICT(material_prefix) DO NOTHING",
             (prefix, p_super, p_model),
         )
     con.commit()

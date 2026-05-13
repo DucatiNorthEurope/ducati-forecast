@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -e
-cd "$(dirname "$0")"
-if [ ! -d venv ]; then
-  python3 -m venv venv
-  ./venv/bin/pip install --upgrade pip
-  ./venv/bin/pip install -r requirements.txt
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+PARENT_DIR="$(dirname "$APP_DIR")"
+REQUIREMENTS="$APP_DIR/../requirements.txt"
+[ -f "$REQUIREMENTS" ] || REQUIREMENTS="$APP_DIR/requirements.txt"
+if [ ! -d "$APP_DIR/venv" ]; then
+  python3 -m venv "$APP_DIR/venv"
+  "$APP_DIR/venv/bin/pip" install --upgrade pip
+  "$APP_DIR/venv/bin/pip" install -r "$REQUIREMENTS"
 fi
-exec ./venv/bin/python app.py
+cd "$PARENT_DIR"
+exec "$APP_DIR/venv/bin/python" -m app.app

@@ -1,47 +1,73 @@
+import io
 import os
 import secrets
 from datetime import date
 from functools import wraps
-from pathlib import Path
 
 from flask import (Flask, request, redirect, url_for, render_template,
                    session, flash)
-from werkzeug.utils import secure_filename
 
-import db
-import parsers
-import seed_data
-
-UPLOAD_DIR = Path(__file__).parent / "data" / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from . import db
+from . import parsers
+from . import seed_data
 
 app = Flask(__name__)
 app.teardown_appcontext(db.close_conn)
 
 
+class _PrefixMiddleware:
+    """Strip a URL prefix from incoming PATH_INFO so Flask routes match their
+    decorator paths, while keeping url_for output prefixed via SCRIPT_NAME."""
+
+    def __init__(self, wsgi_app, prefix):
+        self.wsgi_app = wsgi_app
+        self.prefix = prefix.rstrip("/")
+
+    def __call__(self, environ, start_response):
+        path = environ.get("PATH_INFO", "")
+        if self.prefix and path.startswith(self.prefix):
+            environ["PATH_INFO"] = path[len(self.prefix):] or "/"
+            environ["SCRIPT_NAME"] = environ.get("SCRIPT_NAME", "") + self.prefix
+        return self.wsgi_app(environ, start_response)
+
+
+_url_prefix = os.environ.get("URL_PREFIX", "").rstrip("/")
+if _url_prefix:
+    app.wsgi_app = _PrefixMiddleware(app.wsgi_app, _url_prefix)
+
+
 def _bootstrap():
     """Run once on startup: init DB, seed map, ensure secret key + admin password."""
     db.init_db()
-    con = db.sqlite3.connect(db.DB_PATH)
-    con.row_factory = db.sqlite3.Row
-    # secret key for session signing
-    cur = con.execute("SELECT value FROM settings WHERE key='secret_key'")
+    raw = db._connect()
+    cur = raw.cursor()
+    cur.execute(db.q("SELECT value FROM settings WHERE key=?"), ("secret_key",))
     row = cur.fetchone()
     if row is None:
         sk = secrets.token_hex(32)
-        con.execute("INSERT INTO settings(key,value) VALUES('secret_key',?)", (sk,))
+        cur.execute(db.q("INSERT INTO settings(key,value) VALUES(?,?)"),
+                    ("secret_key", sk))
     else:
         sk = row["value"]
-    # admin password
-    cur = con.execute("SELECT value FROM settings WHERE key='admin_password'")
+    cur.execute(db.q("SELECT value FROM settings WHERE key=?"), ("admin_password",))
     row = cur.fetchone()
     if row is None:
-        ap = "admin"
-        con.execute("INSERT INTO settings(key,value) VALUES('admin_password',?)", (ap,))
-        print(f"[bootstrap] default admin password set to: {ap!r} — change it via /admin/dealers")
-    seed_data.seed(con)
-    con.commit()
-    con.close()
+        ap = os.environ.get("ADMIN_PASSWORD", "admin")
+        cur.execute(db.q("INSERT INTO settings(key,value) VALUES(?,?)"),
+                    ("admin_password", ap))
+        if ap == "admin":
+            print(f"[bootstrap] default admin password set to: 'admin' — change it via /admin/dealers")
+
+    # seed material map via a tiny shim that uses q() too
+    class _SeedShim:
+        def execute(self, sql, params=()):
+            cur.execute(db.q(sql), params)
+            return cur
+        def commit(self):
+            raw.commit()
+    seed_data.seed(_SeedShim())
+    raw.commit()
+    raw.close()
     app.secret_key = sk
 
 
@@ -171,8 +197,8 @@ def dealer_view():
 
     # Embargoed plan models — hide entirely from dealer view.
     embargoed = {r["plan_model"] for r in con.execute(
-        "SELECT plan_model FROM embargoes "
-        "WHERE manually_hidden=1 OR (embargo_until IS NOT NULL AND embargo_until > date('now'))"
+        f"SELECT plan_model FROM embargoes "
+        f"WHERE manually_hidden=1 OR (embargo_until IS NOT NULL AND embargo_until > {db.today_sql()})"
     ).fetchall()}
 
     # Join orders to plan rows by plan_model only.
@@ -294,14 +320,9 @@ def admin_upload():
         flash("Both files are required.", "error")
         return redirect(url_for("admin_upload"))
 
-    plan_path = UPLOAD_DIR / secure_filename(plan_file.filename)
-    orders_path = UPLOAD_DIR / secure_filename(orders_file.filename)
-    plan_file.save(plan_path)
-    orders_file.save(orders_path)
-
     try:
-        plan_rows = parsers.parse_plan(plan_path)
-        order_rows = parsers.parse_orders(orders_path)
+        plan_rows = parsers.parse_plan(io.BytesIO(plan_file.stream.read()))
+        order_rows = parsers.parse_orders(io.BytesIO(orders_file.stream.read()))
     except Exception as e:
         flash(f"Parse failed: {e}", "error")
         return redirect(url_for("admin_upload"))
@@ -362,13 +383,13 @@ def admin_mapping():
     con = db.get_conn()
     # Show all rows, putting unmapped first
     rows = con.execute(
-        "SELECT mm.*, "
-        "(SELECT COUNT(*) FROM orders o WHERE o.material_prefix = mm.material_prefix) AS order_count, "
-        "(SELECT GROUP_CONCAT(DISTINCT bike_model) FROM orders o "
-        "  WHERE o.material_prefix = mm.material_prefix) AS bike_models "
-        "FROM material_map mm "
-        "ORDER BY CASE status WHEN 'unmapped' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, "
-        "mm.material_prefix"
+        f"SELECT mm.*, "
+        f"(SELECT COUNT(*) FROM orders o WHERE o.material_prefix = mm.material_prefix) AS order_count, "
+        f"(SELECT {db.group_concat_distinct('bike_model')} FROM orders o "
+        f"  WHERE o.material_prefix = mm.material_prefix) AS bike_models "
+        f"FROM material_map mm "
+        f"ORDER BY CASE status WHEN 'unmapped' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, "
+        f"mm.material_prefix"
     ).fetchall()
     plan_models = con.execute(
         "SELECT DISTINCT plan_super, plan_model FROM plan "

@@ -11,6 +11,7 @@
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="font-semibold text-slate-700">Bike availability</div>
       <nav class="text-sm">
+        <a href="/" class="mr-3 text-slate-500 hover:underline">← Forecast submission</a>
         {% if session.get('admin') %}
           <a href="{{ url_for('admin_home') }}" class="mr-3 hover:underline">Admin</a>
           <a href="{{ url_for('admin_upload') }}" class="mr-3 hover:underline">Upload</a>
