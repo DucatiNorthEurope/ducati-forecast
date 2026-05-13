@@ -71,7 +71,26 @@ def _bootstrap():
     app.secret_key = sk
 
 
-_bootstrap()
+_boot_error_message = None
+try:
+    _bootstrap()
+except Exception as _e:
+    _boot_error_message = f"{type(_e).__name__}: {_e}"
+    print(f"[bootstrap] deferred startup error: {_boot_error_message}")
+    app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
+    def _bootstrap_error(path):
+        msg = _boot_error_message
+        return (
+            "<h1>Dashboard not configured yet</h1>"
+            "<p>The Flask app started but couldn't initialise its database. "
+            "On Vercel, add a Postgres database (Storage → Create → Postgres) "
+            f"so <code>DATABASE_URL</code> is set, then redeploy.</p><pre>{msg}</pre>",
+            503,
+            {"Content-Type": "text/html; charset=utf-8"},
+        )
 
 
 # ----- auth helpers ---------------------------------------------------
