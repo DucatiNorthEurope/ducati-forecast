@@ -1,9 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-1">Material → plan model mapping</h1>
-<p class="text-sm text-slate-500 mb-4">
-  Each order's Material prefix joins to one plan row. Unmapped prefixes are excluded from dealer availability until resolved.
-</p>
+<div class="flex items-start justify-between mb-4">
+  <div>
+    <h1 class="text-xl font-semibold mb-1">Material → plan model mapping</h1>
+    <p class="text-sm text-slate-500">
+      Each order's Material prefix joins to one plan row. Unmapped prefixes are excluded from dealer availability until resolved.
+    </p>
+  </div>
+  {% if proposal_count %}
+  <form method="post" action="{{ url_for('admin_mapping_accept_all') }}"
+        onsubmit="return confirm('Accept all {{ proposal_count }} suggested mapping(s)?');">
+    <button class="bg-emerald-700 text-white text-sm rounded px-3 py-2 hover:bg-emerald-600">
+      Accept all {{ proposal_count }} suggestion{{ 's' if proposal_count != 1 else '' }}
+    </button>
+  </form>
+  {% endif %}
+</div>
 
 <div class="bg-white border border-slate-200 rounded shadow-sm overflow-x-auto">
   <table class="text-sm w-full">
@@ -22,10 +34,10 @@
       <tr class="border-t border-slate-100 {% if r.status == 'unmapped' %}bg-amber-50{% endif %}">
         <form method="post" action="{{ url_for('admin_mapping_update') }}">
           <input type="hidden" name="prefix" value="{{ r.material_prefix }}">
-          <td class="px-3 py-2 font-mono">{{ r.material_prefix }}</td>
-          <td class="px-3 py-2 text-slate-600">{{ r.bike_models or '—' }}</td>
-          <td class="px-3 py-2">{{ r.order_count }}</td>
-          <td class="px-3 py-2">
+          <td class="px-3 py-2 font-mono align-top">{{ r.material_prefix }}</td>
+          <td class="px-3 py-2 text-slate-600 align-top">{{ r.bike_models or '—' }}</td>
+          <td class="px-3 py-2 align-top">{{ r.order_count }}</td>
+          <td class="px-3 py-2 align-top">
             <select name="plan_combo" class="border border-slate-300 rounded px-2 py-1 text-sm">
               <option value="">— unassigned —</option>
               {% for pm in plan_models %}
@@ -36,19 +48,37 @@
                 </option>
               {% endfor %}
             </select>
+            {% if r.proposed_plan_model %}
+            <div class="mt-2 bg-emerald-50 border border-emerald-200 rounded px-2 py-1.5 text-xs flex items-center gap-2">
+              <span class="text-emerald-800">
+                Suggested:
+                <span class="font-medium">{{ r.proposed_plan_super }} — {{ r.proposed_plan_model }}</span>
+              </span>
+              <button type="submit"
+                      formaction="{{ url_for('admin_mapping_accept') }}"
+                      class="bg-emerald-700 text-white rounded px-2 py-0.5 hover:bg-emerald-600">
+                Accept
+              </button>
+              <button type="submit"
+                      formaction="{{ url_for('admin_mapping_reject') }}"
+                      class="text-slate-500 hover:underline">
+                Reject
+              </button>
+            </div>
+            {% endif %}
           </td>
-          <td class="px-3 py-2">
+          <td class="px-3 py-2 align-top">
             <select name="status" class="border border-slate-300 rounded px-2 py-1 text-sm">
               <option value="active" {% if r.status == 'active' %}selected{% endif %}>Active</option>
               <option value="unmapped" {% if r.status == 'unmapped' %}selected{% endif %}>Unmapped</option>
               <option value="ignored" {% if r.status == 'ignored' %}selected{% endif %}>Ignored</option>
             </select>
           </td>
-          <td class="px-3 py-2 text-right whitespace-nowrap">
+          <td class="px-3 py-2 text-right whitespace-nowrap align-top">
             <button class="text-xs bg-slate-800 text-white rounded px-2 py-1 hover:bg-slate-700">Save</button>
           </td>
         </form>
-        <td class="px-3 py-2">
+        <td class="px-3 py-2 align-top">
           <form method="post" action="{{ url_for('admin_mapping_delete') }}"
                 onsubmit="return confirm('Delete {{ r.material_prefix }} from the map?');">
             <input type="hidden" name="prefix" value="{{ r.material_prefix }}">

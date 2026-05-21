@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import secrets
 from datetime import date
 from functools import wraps
@@ -329,6 +330,75 @@ def _latest_orders_import():
     ).fetchone()
 
 
+# Material-prefix → plan-model auto-suggestion. Proposals are written to
+# material_map.proposed_plan_* and surfaced on the mapping page for admin
+# review; nothing is auto-applied.
+
+_NORM_PUNCT_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _norm(s):
+    """Aggressive normalize for fuzzy name matching: lowercase, drop non-
+    alphanumerics. So 'MTS V4 S / MTS V4 S MTO' → 'mtsv4smtsv4smto'."""
+    if s is None:
+        return ""
+    return _NORM_PUNCT_RE.sub("", str(s).lower())
+
+
+def _auto_suggest_mappings():
+    """For every status='unmapped' row in material_map that hasn't been
+    rejected, look at one of its orders' (bike_super_model, bike_model) and
+    try to find a matching (plan_super, plan_model) in the current plan.
+    Writes the match (if any) to proposed_plan_super / proposed_plan_model.
+    Returns the count of new proposals made."""
+    con = db.get_conn()
+
+    plan_pairs = con.execute(
+        "SELECT DISTINCT plan_super, plan_model FROM plan WHERE plan_model IS NOT NULL"
+    ).fetchall()
+    if not plan_pairs:
+        return 0
+
+    # Exact-normalized lookup on (super, model), and a model-only fallback
+    # for cases where the orders sheet leaves bike_super_model empty.
+    by_super_model = {}
+    by_model = {}
+    for r in plan_pairs:
+        ps, pm = r["plan_super"], r["plan_model"]
+        by_super_model[(_norm(ps), _norm(pm))] = (ps, pm)
+        # First-seen wins for model-only; ambiguous matches stay unsuggested.
+        by_model.setdefault(_norm(pm), (ps, pm))
+
+    candidates = con.execute(
+        "SELECT material_prefix FROM material_map "
+        "WHERE status='unmapped' AND proposal_rejected=0"
+    ).fetchall()
+
+    n = 0
+    for c in candidates:
+        prefix = c["material_prefix"]
+        order = con.execute(
+            "SELECT bike_super_model, bike_model FROM orders "
+            "WHERE material_prefix=? AND bike_model IS NOT NULL LIMIT 1",
+            (prefix,),
+        ).fetchone()
+        if not order:
+            continue
+        match = by_super_model.get((_norm(order["bike_super_model"]),
+                                    _norm(order["bike_model"])))
+        if match is None:
+            match = by_model.get(_norm(order["bike_model"]))
+        if match is None:
+            continue
+        con.execute(
+            "UPDATE material_map SET proposed_plan_super=?, proposed_plan_model=? "
+            "WHERE material_prefix=?",
+            (match[0], match[1], prefix),
+        )
+        n += 1
+    return n
+
+
 @app.route("/admin")
 @admin_required
 def admin_home():
@@ -532,6 +602,11 @@ def admin_upload():
                 (p,),
             )
 
+    # Auto-suggest mappings for unmapped prefixes. Cheap to always run — picks
+    # up new prefixes from an orders refresh AND new matches enabled by a plan
+    # refresh. Suggestions are proposals only; the admin still confirms.
+    proposed_n = _auto_suggest_mappings()
+
     unmapped_total = con.execute(
         "SELECT COUNT(*) AS c FROM material_map WHERE status='unmapped' "
         "AND material_prefix IN (SELECT DISTINCT material_prefix FROM orders)"
@@ -561,7 +636,9 @@ def admin_upload():
         parts.append("orders reused")
     msg = "Imported: " + ", ".join(parts) + "."
     if new_prefixes:
-        msg += f" {len(new_prefixes)} new Material prefix(es) detected — review on the mapping page."
+        msg += f" {len(new_prefixes)} new Material prefix(es) detected."
+    if proposed_n:
+        msg += f" {proposed_n} mapping suggestion(s) ready for review."
     flash(msg, "ok")
     return redirect(url_for("admin_home"))
 
@@ -572,7 +649,8 @@ def admin_upload():
 @admin_required
 def admin_mapping():
     con = db.get_conn()
-    # Show all rows, putting unmapped first
+    # Unmapped rows first, then mapped, then ignored. Within each group, those
+    # with a pending proposal sort to the top so they're easy to action.
     rows = con.execute(
         f"SELECT mm.*, "
         f"(SELECT COUNT(*) FROM orders o WHERE o.material_prefix = mm.material_prefix) AS order_count, "
@@ -580,13 +658,18 @@ def admin_mapping():
         f"  WHERE o.material_prefix = mm.material_prefix) AS bike_models "
         f"FROM material_map mm "
         f"ORDER BY CASE status WHEN 'unmapped' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, "
+        f"CASE WHEN mm.proposed_plan_model IS NOT NULL THEN 0 ELSE 1 END, "
         f"mm.material_prefix"
     ).fetchall()
     plan_models = con.execute(
         "SELECT DISTINCT plan_super, plan_model FROM plan "
         "ORDER BY plan_super, plan_model"
     ).fetchall()
-    return render_template("admin_mapping.html", rows=rows, plan_models=plan_models)
+    proposal_count = con.execute(
+        "SELECT COUNT(*) AS c FROM material_map WHERE proposed_plan_model IS NOT NULL"
+    ).fetchone()["c"]
+    return render_template("admin_mapping.html", rows=rows, plan_models=plan_models,
+                           proposal_count=proposal_count)
 
 
 @app.route("/admin/mapping/update", methods=["POST"])
@@ -605,10 +688,61 @@ def admin_mapping_update():
         status = "unmapped"
     db.get_conn().execute(
         "UPDATE material_map SET plan_super=?, plan_model=?, status=?, "
+        "proposed_plan_super=NULL, proposed_plan_model=NULL, "
         "updated_at=CURRENT_TIMESTAMP WHERE material_prefix=?",
         (plan_super, plan_model, status, prefix),
     )
     db.get_conn().commit()
+    return redirect(url_for("admin_mapping"))
+
+
+@app.route("/admin/mapping/accept", methods=["POST"])
+@admin_required
+def admin_mapping_accept():
+    prefix = request.form["prefix"]
+    con = db.get_conn()
+    con.execute(
+        "UPDATE material_map SET "
+        "plan_super=proposed_plan_super, plan_model=proposed_plan_model, "
+        "status='active', proposed_plan_super=NULL, proposed_plan_model=NULL, "
+        "proposal_rejected=0, updated_at=CURRENT_TIMESTAMP "
+        "WHERE material_prefix=? AND proposed_plan_model IS NOT NULL",
+        (prefix,),
+    )
+    con.commit()
+    return redirect(url_for("admin_mapping"))
+
+
+@app.route("/admin/mapping/reject", methods=["POST"])
+@admin_required
+def admin_mapping_reject():
+    prefix = request.form["prefix"]
+    con = db.get_conn()
+    con.execute(
+        "UPDATE material_map SET "
+        "proposed_plan_super=NULL, proposed_plan_model=NULL, "
+        "proposal_rejected=1, updated_at=CURRENT_TIMESTAMP "
+        "WHERE material_prefix=?",
+        (prefix,),
+    )
+    con.commit()
+    return redirect(url_for("admin_mapping"))
+
+
+@app.route("/admin/mapping/accept-all", methods=["POST"])
+@admin_required
+def admin_mapping_accept_all():
+    con = db.get_conn()
+    cur = con.execute(
+        "UPDATE material_map SET "
+        "plan_super=proposed_plan_super, plan_model=proposed_plan_model, "
+        "status='active', proposed_plan_super=NULL, proposed_plan_model=NULL, "
+        "proposal_rejected=0, updated_at=CURRENT_TIMESTAMP "
+        "WHERE proposed_plan_model IS NOT NULL"
+    )
+    n = cur.rowcount
+    con.commit()
+    flash(f"Accepted {n} suggestion(s).", "ok")
     return redirect(url_for("admin_mapping"))
 
 

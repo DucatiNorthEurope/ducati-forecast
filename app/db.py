@@ -58,6 +58,9 @@ CREATE TABLE IF NOT EXISTS material_map (
     plan_model TEXT,
     status TEXT DEFAULT 'active',
     notes TEXT,
+    proposed_plan_super TEXT,
+    proposed_plan_model TEXT,
+    proposal_rejected INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS plan (
@@ -132,6 +135,9 @@ CREATE TABLE IF NOT EXISTS material_map (
     plan_model TEXT,
     status TEXT DEFAULT 'active',
     notes TEXT,
+    proposed_plan_super TEXT,
+    proposed_plan_model TEXT,
+    proposal_rejected INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS plan (
@@ -278,7 +284,39 @@ def init_db():
     else:
         raw.executescript(schema)
     raw.commit()
+    _migrate(raw)
     raw.close()
+
+
+# Columns added after the initial schema. Listed here so older DBs catch up
+# without losing data. Safe to re-run.
+_POST_INIT_COLUMNS = [
+    ("material_map", "proposed_plan_super",  "TEXT"),
+    ("material_map", "proposed_plan_model",  "TEXT"),
+    ("material_map", "proposal_rejected",    "INTEGER NOT NULL DEFAULT 0"),
+]
+
+
+def _migrate(raw):
+    for table, column, coltype in _POST_INIT_COLUMNS:
+        _add_column_if_missing(raw, table, column, coltype)
+    raw.commit()
+
+
+def _add_column_if_missing(raw, table, column, coltype):
+    """ALTER TABLE ADD COLUMN, swallowing the dialect-specific 'already exists'
+    error. SQLite doesn't support `IF NOT EXISTS` for ADD COLUMN; Postgres does
+    but we keep the same try/except shape for symmetry."""
+    cur = raw.cursor()
+    try:
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+    except Exception as e:
+        msg = str(e).lower()
+        if "duplicate" in msg or "already exists" in msg:
+            if USE_POSTGRES:
+                raw.rollback()
+            return
+        raise
 
 
 # --- settings helpers (used both at request time and during bootstrap) ---
