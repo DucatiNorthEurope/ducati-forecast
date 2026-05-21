@@ -117,6 +117,13 @@ CREATE TABLE IF NOT EXISTS plan_model_history (
     first_seen_at TEXT DEFAULT CURRENT_TIMESTAMP,
     acknowledged INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS material_map_backups (
+    id INTEGER PRIMARY KEY,
+    snapshot_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    label TEXT,
+    row_count INTEGER NOT NULL DEFAULT 0,
+    payload TEXT NOT NULL
+);
 """
 
 _POSTGRES_SCHEMA = """
@@ -193,6 +200,13 @@ CREATE TABLE IF NOT EXISTS plan_model_history (
     plan_model TEXT PRIMARY KEY,
     first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     acknowledged INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS material_map_backups (
+    id BIGSERIAL PRIMARY KEY,
+    snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    label TEXT,
+    row_count INTEGER NOT NULL DEFAULT 0,
+    payload TEXT NOT NULL
 );
 """
 

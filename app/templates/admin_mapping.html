@@ -90,4 +90,22 @@
     </tbody>
   </table>
 </div>
+
+<div class="mt-8 border border-rose-200 bg-rose-50 rounded p-4 max-w-3xl">
+  <h2 class="text-sm font-semibold text-rose-800 uppercase tracking-wide mb-1">Danger zone</h2>
+  <p class="text-sm text-slate-700 mb-3">
+    Reset all mappings to test the auto-suggest pipeline from scratch. The current map is snapshotted to a backup table first, then wiped; every Material prefix currently in orders is re-added as <em>unmapped</em>, and auto-suggest runs over them.
+    {% if latest_backup %}
+      <span class="block text-xs text-slate-500 mt-1">Latest backup: {{ latest_backup.row_count }} rows at {{ latest_backup.snapshot_at }}.</span>
+    {% endif %}
+  </p>
+  <form method="post" action="{{ url_for('admin_mapping_reset') }}"
+        onsubmit="return confirm('This will clear ALL current mappings (a backup is saved first). Continue?');">
+    <input type="text" name="label" placeholder="Optional label for the backup"
+           class="border border-slate-300 rounded px-2 py-1 text-sm mr-2 w-64">
+    <button class="bg-rose-700 text-white text-sm rounded px-3 py-2 hover:bg-rose-600">
+      Reset mappings (with backup)
+    </button>
+  </form>
+</div>
 {% endblock %}

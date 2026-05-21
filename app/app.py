@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import re
 import secrets
@@ -668,8 +669,12 @@ def admin_mapping():
     proposal_count = con.execute(
         "SELECT COUNT(*) AS c FROM material_map WHERE proposed_plan_model IS NOT NULL"
     ).fetchone()["c"]
+    latest_backup = con.execute(
+        "SELECT snapshot_at, row_count FROM material_map_backups "
+        "ORDER BY id DESC LIMIT 1"
+    ).fetchone()
     return render_template("admin_mapping.html", rows=rows, plan_models=plan_models,
-                           proposal_count=proposal_count)
+                           proposal_count=proposal_count, latest_backup=latest_backup)
 
 
 @app.route("/admin/mapping/update", methods=["POST"])
@@ -752,6 +757,49 @@ def admin_mapping_delete():
     prefix = request.form["prefix"]
     db.get_conn().execute("DELETE FROM material_map WHERE material_prefix=?", (prefix,))
     db.get_conn().commit()
+    return redirect(url_for("admin_mapping"))
+
+
+@app.route("/admin/mapping/reset", methods=["POST"])
+@admin_required
+def admin_mapping_reset():
+    """Snapshot the current material_map to material_map_backups, wipe it,
+    then re-seed with every unique material_prefix from orders as 'unmapped'
+    and run auto-suggest. Designed for testing the auto-suggest pipeline."""
+    con = db.get_conn()
+
+    # Snapshot
+    existing = con.execute(
+        "SELECT material_prefix, plan_super, plan_model, status, notes, "
+        "proposed_plan_super, proposed_plan_model, proposal_rejected "
+        "FROM material_map ORDER BY material_prefix"
+    ).fetchall()
+    payload = json.dumps([dict(r) for r in existing])
+    label = (request.form.get("label") or "").strip() or None
+    con.execute(
+        "INSERT INTO material_map_backups(label, row_count, payload) VALUES(?,?,?)",
+        (label, len(existing), payload),
+    )
+
+    # Wipe
+    con.execute("DELETE FROM material_map")
+
+    # Re-seed from current orders so there's something to auto-suggest against
+    cur = con.execute(
+        "INSERT INTO material_map(material_prefix, status) "
+        "SELECT DISTINCT material_prefix, 'unmapped' FROM orders "
+        "WHERE material_prefix IS NOT NULL"
+    )
+    seeded = cur.rowcount
+
+    proposed = _auto_suggest_mappings()
+    con.commit()
+
+    flash(
+        f"Backed up {len(existing)} mappings, cleared the table, re-seeded "
+        f"{seeded} prefix(es) from orders, and proposed {proposed} mapping(s).",
+        "ok",
+    )
     return redirect(url_for("admin_mapping"))
 
 
