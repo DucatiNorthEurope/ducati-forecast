@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "framework": null,
+  "rewrites": [
+    { "source": "/dashboard", "destination": "/api/index" },
+    { "source": "/dashboard/(.*)", "destination": "/api/index" }
+  ]
+}

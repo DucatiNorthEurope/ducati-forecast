@@ -11,12 +11,15 @@
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="font-semibold text-slate-700">Bike availability</div>
       <nav class="text-sm">
+        <a href="/" class="mr-3 text-slate-500 hover:underline">← Forecast submission</a>
         {% if session.get('admin') %}
           <a href="{{ url_for('admin_home') }}" class="mr-3 hover:underline">Admin</a>
           <a href="{{ url_for('admin_upload') }}" class="mr-3 hover:underline">Upload</a>
           <a href="{{ url_for('admin_mapping') }}" class="mr-3 hover:underline">Mapping</a>
           <a href="{{ url_for('admin_embargoes') }}" class="mr-3 hover:underline">Embargoes</a>
           <a href="{{ url_for('admin_dealers') }}" class="mr-3 hover:underline">Dealers</a>
+          <a href="{{ url_for('admin_preview_dealer') }}" class="mr-3 hover:underline">Dealer view</a>
+          <a href="{{ url_for('admin_help') }}" class="mr-3 hover:underline">Help</a>
           <a href="{{ url_for('logout') }}" class="text-slate-500 hover:underline">Log out</a>
         {% elif session.get('dealer_pw') %}
           <a href="{{ url_for('logout') }}" class="text-slate-500 hover:underline">Log out</a>
@@ -39,5 +42,8 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+  <footer class="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-400">
+    deploy check: 2026-05-21
+  </footer>
 </body>
 </html>

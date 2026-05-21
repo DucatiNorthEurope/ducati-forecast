@@ -1,0 +1,12 @@
+app/venv/
+app/__pycache__/
+app/**/__pycache__/
+*.pyc
+app/data/*.db
+app/data/uploads/
+
+# local-only data files (never commit dealer/customer data)
+*.xlsx
+*.csv
+.env
+.vercel
