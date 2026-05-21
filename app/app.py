@@ -313,12 +313,30 @@ def _render_dealer(dealer):
 
 # ----- admin: home ----------------------------------------------------
 
+def _latest_plan_import():
+    """Most recent imports row that actually carried a plan upload."""
+    return db.get_conn().execute(
+        "SELECT id, imported_at, plan_filename, plan_rows FROM imports "
+        "WHERE plan_filename IS NOT NULL ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+
+
+def _latest_orders_import():
+    """Most recent imports row that actually carried an orders upload."""
+    return db.get_conn().execute(
+        "SELECT id, imported_at, orders_filename, order_rows FROM imports "
+        "WHERE orders_filename IS NOT NULL ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+
+
 @app.route("/admin")
 @admin_required
 def admin_home():
     con = db.get_conn()
-    last_import = con.execute(
-        "SELECT * FROM imports ORDER BY id DESC LIMIT 1"
+    last_plan = _latest_plan_import()
+    last_orders = _latest_orders_import()
+    last_any = con.execute(
+        "SELECT imported_at FROM imports ORDER BY id DESC LIMIT 1"
     ).fetchone()
     unmapped = con.execute(
         "SELECT COUNT(*) AS c FROM material_map WHERE status='unmapped'"
@@ -352,7 +370,9 @@ def admin_home():
 
     return render_template(
         "admin_home.html",
-        last_import=last_import,
+        last_plan=last_plan,
+        last_orders=last_orders,
+        last_any_at=last_any["imported_at"] if last_any else None,
         unmapped=unmapped,
         dealer_count=dealer_count,
         order_count=order_count,
@@ -408,74 +428,109 @@ def admin_help():
 @admin_required
 def admin_upload():
     if request.method == "GET":
-        return render_template("admin_upload.html")
+        return render_template(
+            "admin_upload.html",
+            last_plan=_latest_plan_import(),
+            last_orders=_latest_orders_import(),
+        )
 
-    plan_file = request.files.get("plan_file")
-    orders_file = request.files.get("orders_file")
-    if not plan_file or not orders_file:
-        flash("Both files are required.", "error")
+    # Per-file action: "new" = upload a fresh file, "reuse" = keep what's in the DB.
+    # Default to "new" if the form somehow doesn't send it.
+    plan_action = (request.form.get("plan_action") or "new").strip()
+    orders_action = (request.form.get("orders_action") or "new").strip()
+    plan_file = request.files.get("plan_file") if plan_action == "new" else None
+    orders_file = request.files.get("orders_file") if orders_action == "new" else None
+
+    # Validate combinations.
+    if plan_action == "reuse" and not _latest_plan_import():
+        flash("Can't reuse plan data — none has ever been uploaded.", "error")
+        return redirect(url_for("admin_upload"))
+    if orders_action == "reuse" and not _latest_orders_import():
+        flash("Can't reuse orders data — none has ever been uploaded.", "error")
+        return redirect(url_for("admin_upload"))
+    if plan_action == "new" and (not plan_file or not plan_file.filename):
+        flash("Plan file not attached.", "error")
+        return redirect(url_for("admin_upload"))
+    if orders_action == "new" and (not orders_file or not orders_file.filename):
+        flash("Orders file not attached.", "error")
+        return redirect(url_for("admin_upload"))
+    if plan_action == "reuse" and orders_action == "reuse":
+        flash("Nothing to import — choose at least one file to refresh.", "error")
         return redirect(url_for("admin_upload"))
 
+    # Parse only the side(s) the user is refreshing.
+    plan_rows = None
+    order_rows = None
     try:
-        plan_rows = parsers.parse_plan(io.BytesIO(plan_file.stream.read()))
-        order_rows = parsers.parse_orders(io.BytesIO(orders_file.stream.read()))
+        if plan_file is not None:
+            plan_rows = parsers.parse_plan(io.BytesIO(plan_file.stream.read()))
+        if orders_file is not None:
+            order_rows = parsers.parse_orders(io.BytesIO(orders_file.stream.read()))
     except Exception as e:
         flash(f"Parse failed: {e}", "error")
         return redirect(url_for("admin_upload"))
 
     con = db.get_conn()
-    # Snapshot the existing plan_models so we can diff against the new upload.
-    previous_models = {r["plan_model"] for r in con.execute(
-        "SELECT DISTINCT plan_model FROM plan WHERE plan_model IS NOT NULL"
-    ).fetchall()}
-    con.execute("DELETE FROM plan")
-    con.execute("DELETE FROM orders")
-    con.executemany(
-        "INSERT INTO plan(country, plan_super, plan_model, year, month, qty) "
-        "VALUES(?,?,?,?,?,?)",
-        plan_rows,
-    )
-    con.executemany(
-        "INSERT INTO orders(order_number, material_prefix, material_full, bike_super_model, "
-        "bike_model, bike_color, bike_type, end_customer_status, country, dealer, dealer_code, "
-        "request_date, order_creation_date, confirmed_delivery_date, order_status_group) "
-        "VALUES(:order_number,:material_prefix,:material_full,:bike_super_model,:bike_model,"
-        ":bike_color,:bike_type,:end_customer_status,:country,:dealer,:dealer_code,"
-        ":request_date,:order_creation_date,:confirmed_delivery_date,:order_status_group)",
-        order_rows,
-    )
 
-    # auto-add any unseen Material prefixes to material_map with status='unmapped'
-    seen_prefixes = {o["material_prefix"] for o in order_rows if o["material_prefix"]}
-    existing = {r["material_prefix"] for r in con.execute(
-        "SELECT material_prefix FROM material_map").fetchall()}
-    new_prefixes = seen_prefixes - existing
-    for p in sorted(new_prefixes):
-        con.execute(
-            "INSERT INTO material_map(material_prefix, status) VALUES(?, 'unmapped')",
-            (p,),
+    # Plan side.
+    new_prefixes = set()
+    new_models = set()
+    if plan_rows is not None:
+        # Snapshot the existing plan_models so we can diff against the new upload.
+        previous_models = {r["plan_model"] for r in con.execute(
+            "SELECT DISTINCT plan_model FROM plan WHERE plan_model IS NOT NULL"
+        ).fetchall()}
+        con.execute("DELETE FROM plan")
+        con.executemany(
+            "INSERT INTO plan(country, plan_super, plan_model, year, month, qty) "
+            "VALUES(?,?,?,?,?,?)",
+            plan_rows,
         )
 
-    # Models that weren't in the previous plan are flagged for admin review.
-    # On the very first upload (previous_models is empty), nothing is "new" —
-    # we pre-acknowledge everything so the notification panel stays empty until
-    # something actually changes between uploads.
-    seen_models = {p[2] for p in plan_rows}
-    first_upload = not previous_models
-    new_models = (seen_models - previous_models) if not first_upload else set()
-    pre_ack_models = seen_models if first_upload else (seen_models - new_models)
-    for m in sorted(new_models):
-        con.execute(
-            "INSERT INTO plan_model_history(plan_model, acknowledged) VALUES(?, 0) "
-            "ON CONFLICT(plan_model) DO NOTHING",
-            (m,),
+        # Models that weren't in the previous plan are flagged for admin review.
+        # On the very first upload (previous_models is empty), nothing is "new" —
+        # we pre-acknowledge everything so the notification panel stays empty
+        # until something actually changes between uploads.
+        seen_models = {p[2] for p in plan_rows}
+        first_upload = not previous_models
+        new_models = (seen_models - previous_models) if not first_upload else set()
+        pre_ack_models = seen_models if first_upload else (seen_models - new_models)
+        for m in sorted(new_models):
+            con.execute(
+                "INSERT INTO plan_model_history(plan_model, acknowledged) VALUES(?, 0) "
+                "ON CONFLICT(plan_model) DO NOTHING",
+                (m,),
+            )
+        for m in sorted(pre_ack_models):
+            con.execute(
+                "INSERT INTO plan_model_history(plan_model, acknowledged) VALUES(?, 1) "
+                "ON CONFLICT(plan_model) DO NOTHING",
+                (m,),
+            )
+
+    # Orders side.
+    if order_rows is not None:
+        con.execute("DELETE FROM orders")
+        con.executemany(
+            "INSERT INTO orders(order_number, material_prefix, material_full, bike_super_model, "
+            "bike_model, bike_color, bike_type, end_customer_status, country, dealer, dealer_code, "
+            "request_date, order_creation_date, confirmed_delivery_date, order_status_group) "
+            "VALUES(:order_number,:material_prefix,:material_full,:bike_super_model,:bike_model,"
+            ":bike_color,:bike_type,:end_customer_status,:country,:dealer,:dealer_code,"
+            ":request_date,:order_creation_date,:confirmed_delivery_date,:order_status_group)",
+            order_rows,
         )
-    for m in sorted(pre_ack_models):
-        con.execute(
-            "INSERT INTO plan_model_history(plan_model, acknowledged) VALUES(?, 1) "
-            "ON CONFLICT(plan_model) DO NOTHING",
-            (m,),
-        )
+
+        # auto-add any unseen Material prefixes to material_map with status='unmapped'
+        seen_prefixes = {o["material_prefix"] for o in order_rows if o["material_prefix"]}
+        existing = {r["material_prefix"] for r in con.execute(
+            "SELECT material_prefix FROM material_map").fetchall()}
+        new_prefixes = seen_prefixes - existing
+        for p in sorted(new_prefixes):
+            con.execute(
+                "INSERT INTO material_map(material_prefix, status) VALUES(?, 'unmapped')",
+                (p,),
+            )
 
     unmapped_total = con.execute(
         "SELECT COUNT(*) AS c FROM material_map WHERE status='unmapped' "
@@ -485,11 +540,26 @@ def admin_upload():
     con.execute(
         "INSERT INTO imports(plan_filename, orders_filename, plan_rows, order_rows, unmapped_count) "
         "VALUES(?,?,?,?,?)",
-        (plan_file.filename, orders_file.filename, len(plan_rows), len(order_rows), unmapped_total),
+        (
+            plan_file.filename if plan_file is not None else None,
+            orders_file.filename if orders_file is not None else None,
+            len(plan_rows) if plan_rows is not None else None,
+            len(order_rows) if order_rows is not None else None,
+            unmapped_total,
+        ),
     )
     con.commit()
 
-    msg = f"Imported {len(plan_rows)} plan rows and {len(order_rows)} orders."
+    parts = []
+    if plan_rows is not None:
+        parts.append(f"{len(plan_rows)} plan rows")
+    else:
+        parts.append("plan reused")
+    if order_rows is not None:
+        parts.append(f"{len(order_rows)} orders")
+    else:
+        parts.append("orders reused")
+    msg = "Imported: " + ", ".join(parts) + "."
     if new_prefixes:
         msg += f" {len(new_prefixes)} new Material prefix(es) detected — review on the mapping page."
     flash(msg, "ok")

@@ -74,12 +74,28 @@
 </div>
 
 <div class="bg-white border border-slate-200 rounded p-4 mb-4">
-  <h2 class="font-medium mb-2">Last import</h2>
-  {% if last_import %}
-    <div class="text-sm text-slate-600">
-      <div>At <span class="font-medium">{{ last_import.imported_at }}</span></div>
-      <div>Plan: <span class="font-mono text-xs">{{ last_import.plan_filename }}</span> — {{ last_import.plan_rows }} rows</div>
-      <div>Orders: <span class="font-mono text-xs">{{ last_import.orders_filename }}</span> — {{ last_import.order_rows }} rows</div>
+  <h2 class="font-medium mb-2">Current data</h2>
+  {% if last_plan or last_orders %}
+    <div class="text-sm text-slate-600 space-y-1">
+      {% if last_any_at %}<div class="text-xs text-slate-400">Last activity: {{ last_any_at }}</div>{% endif %}
+      <div>Plan:
+        {% if last_plan %}
+          <span class="font-mono text-xs">{{ last_plan.plan_filename }}</span>
+          — {{ last_plan.plan_rows }} rows
+          <span class="text-xs text-slate-400">({{ last_plan.imported_at }})</span>
+        {% else %}
+          <span class="text-slate-400">none yet</span>
+        {% endif %}
+      </div>
+      <div>Orders:
+        {% if last_orders %}
+          <span class="font-mono text-xs">{{ last_orders.orders_filename }}</span>
+          — {{ last_orders.order_rows }} rows
+          <span class="text-xs text-slate-400">({{ last_orders.imported_at }})</span>
+        {% else %}
+          <span class="text-slate-400">none yet</span>
+        {% endif %}
+      </div>
     </div>
   {% else %}
     <p class="text-sm text-slate-500">No data has been uploaded yet.</p>
