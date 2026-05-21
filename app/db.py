@@ -3,12 +3,35 @@ the DATABASE_URL env var. Most queries use `?` placeholders and go through the
 `q()` helper, which converts to psycopg's `%s` style when running against Postgres."""
 
 import os
+import re
 import sqlite3
 from pathlib import Path
 
 from flask import g
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+def _clean_postgres_url(url: str) -> str:
+    """Supabase's POSTGRES_URL can include non-standard query params (e.g. `supa=`)
+    that psycopg's libpq parser rejects. Drop everything except a small allow-list
+    of well-known libpq options."""
+    if not url:
+        return url
+    from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+    p = urlparse(url)
+    if not p.query:
+        return url
+    allowed = {
+        "sslmode", "sslcert", "sslkey", "sslrootcert", "channel_binding",
+        "application_name", "connect_timeout", "options", "target_session_attrs",
+    }
+    keep = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k in allowed]
+    return urlunparse(p._replace(query=urlencode(keep)))
+
+
+DATABASE_URL = _clean_postgres_url(
+    (os.environ.get("DATABASE_URL")
+     or os.environ.get("POSTGRES_URL")
+     or "").strip()
+)
 USE_POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 SQLITE_PATH = Path(__file__).parent / "data" / "dashboard.db"
 
@@ -86,6 +109,11 @@ CREATE TABLE IF NOT EXISTS embargoes (
     manually_hidden INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS plan_model_history (
+    plan_model TEXT PRIMARY KEY,
+    first_seen_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    acknowledged INTEGER NOT NULL DEFAULT 0
+);
 """
 
 _POSTGRES_SCHEMA = """
@@ -155,21 +183,34 @@ CREATE TABLE IF NOT EXISTS embargoes (
     manually_hidden INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS plan_model_history (
+    plan_model TEXT PRIMARY KEY,
+    first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    acknowledged INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
 # --- query helpers ----------------------------------------------------
 
+_NAMED_PARAM_RE = re.compile(r"(?<!:):(\w+)")
+
+
 def q(sql: str) -> str:
-    """Convert ?-style placeholders to %s for psycopg. No-op on SQLite."""
+    """Translate placeholders from SQLite style to psycopg style when on
+    Postgres. SQLite uses `?` (positional) and `:name` (named); psycopg uses
+    `%s` and `%(name)s`. The negative-lookbehind keeps `::cast` operators intact."""
     if USE_POSTGRES:
-        return sql.replace("?", "%s")
+        sql = sql.replace("?", "%s")
+        sql = _NAMED_PARAM_RE.sub(r"%(\1)s", sql)
     return sql
 
 
 def today_sql() -> str:
-    """Dialect-appropriate SQL fragment for 'today's date'."""
-    return "CURRENT_DATE" if USE_POSTGRES else "date('now')"
+    """Dialect-appropriate SQL fragment for 'today's date' as an ISO-formatted
+    string, so it can be compared against TEXT columns without a cast on either
+    side blowing up."""
+    return "to_char(CURRENT_DATE, 'YYYY-MM-DD')" if USE_POSTGRES else "date('now')"
 
 
 def group_concat_distinct(col: str) -> str:

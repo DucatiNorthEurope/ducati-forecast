@@ -2,6 +2,57 @@
 {% block content %}
 <h1 class="text-xl font-semibold mb-4">Admin</h1>
 
+{% if embargo_review or new_models %}
+<div class="bg-amber-50 border border-amber-200 rounded p-4 mb-6">
+  <h2 class="text-sm font-semibold text-amber-800 uppercase tracking-wide mb-3">Needs your attention</h2>
+
+  {% if embargo_review %}
+    <div class="mb-4">
+      <p class="text-sm text-slate-700 mb-2">
+        These models are currently embargoed but have open orders coming in — the embargo may have ended.
+      </p>
+      <ul class="space-y-1">
+        {% for r in embargo_review %}
+        <li class="flex items-center justify-between text-sm bg-white border border-amber-200 rounded px-3 py-2">
+          <span><span class="font-medium">{{ r.plan_model }}</span>
+                <span class="text-slate-500 text-xs ml-2">{{ r.order_count }} open order{{ 's' if r.order_count != 1 else '' }}</span></span>
+          <form method="post" action="{{ url_for('admin_notify_lift_embargo') }}">
+            <input type="hidden" name="plan_model" value="{{ r.plan_model }}">
+            <button class="text-xs bg-emerald-700 text-white rounded px-2 py-1 hover:bg-emerald-600">Lift embargo</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if new_models %}
+    <div>
+      <p class="text-sm text-slate-700 mb-2">
+        New models in the latest upload — consider embargoing until they're ready to be shown to dealers.
+      </p>
+      <ul class="space-y-1">
+        {% for r in new_models %}
+        <li class="flex items-center justify-between text-sm bg-white border border-amber-200 rounded px-3 py-2">
+          <span class="font-medium">{{ r.plan_model }}</span>
+          <span class="flex gap-2">
+            <form method="post" action="{{ url_for('admin_notify_embargo_new') }}">
+              <input type="hidden" name="plan_model" value="{{ r.plan_model }}">
+              <button class="text-xs bg-rose-700 text-white rounded px-2 py-1 hover:bg-rose-600">Embargo</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_notify_dismiss_new') }}">
+              <input type="hidden" name="plan_model" value="{{ r.plan_model }}">
+              <button class="text-xs text-slate-500 hover:underline">Dismiss</button>
+            </form>
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="bg-white border border-slate-200 rounded p-4">
     <div class="text-xs uppercase text-slate-500">Dealers</div>

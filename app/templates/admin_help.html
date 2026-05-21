@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="prose max-w-3xl">
+<style>
+  .prose h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+  .prose h2 { font-size: 1.05rem; font-weight: 600; margin-top: 1.75rem; margin-bottom: 0.5rem; }
+  .prose h3 { font-size: 0.95rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.35rem; }
+  .prose p { margin-bottom: 0.75rem; color: #475569; }
+  .prose ul { margin-bottom: 0.75rem; padding-left: 1.25rem; list-style: disc; color: #475569; }
+  .prose ul li { margin-bottom: 0.25rem; }
+  .prose code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 0.85em; }
+  .prose pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; font-size: 0.85em; overflow-x: auto; margin-bottom: 0.75rem; }
+  .prose strong { color: #1e293b; }
+</style>
+
+<h1>How this dashboard works</h1>
+<p>
+  A small internal portal that shows dealers — across the UK, Sweden and Norway —
+  when bikes are likely to be available. It's fed by the weekly DUK plan workbook
+  and the orders export. Each dealer logs in with a personal password and sees a
+  country-wide availability grid plus their own committed orders.
+</p>
+
+<h2>The pages</h2>
+<ul>
+  <li><strong>Admin</strong> — at-a-glance counts (dealers, orders, plan rows, unmapped SKUs), the last-import details, and the notification panel for things that need attention.</li>
+  <li><strong>Upload</strong> — drop in the latest plan workbook and orders export. Each upload <em>replaces</em> the plan and orders tables. Mapping table, dealers, embargoes and admin password persist.</li>
+  <li><strong>Mapping</strong> — joins each order to its plan-model row using the leading token of the order's <code>Material</code> column (e.g. <code>MSV4S</code> → <code>MTS V4 S / MTS V4 S MTO</code>). The seed covers the 37 SKU prefixes seen so far; any new prefix that arrives on a future upload lands here as <em>unmapped</em> until you assign it.</li>
+  <li><strong>Embargoes</strong> — hide selected models from every dealer's view. Tick rows in the table (<kbd>↑</kbd>/<kbd>↓</kbd> to navigate, <kbd>Space</kbd> to toggle), then use <em>Assign embargo date</em>, <em>Embargo all selected</em>, or <em>Unembargo all selected</em>.</li>
+  <li><strong>Dealers</strong> — manage per-dealer passwords. Each dealer is bound to a country (UK / SWE / NOR) and optionally to a dealer code, which is what makes their own committed orders show on their page. The admin password lives at the bottom of this page.</li>
+  <li><strong>Dealer view</strong> — preview the grid every dealer sees. Same numbers regardless of which dealer; the only per-dealer difference is the "Your committed orders" panel.</li>
+</ul>
+
+<h2>How availability is computed</h2>
+<p>For each (model, month) cell:</p>
+<pre>available = DUK Sell In forecast
+          − all open Demo / Courtesy orders (locked to their delivery month)
+          − all open end-customer orders (FIFO'd by order creation date,
+            cascading forward when a month fills up)</pre>
+<p>
+  Stock / dealer orders are deliberately <strong>not subtracted</strong> — they're the
+  elastic at the back of the queue and slide later when customer orders come in.
+</p>
+
+<h3>The traffic-light dots</h3>
+<ul>
+  <li><span class="inline-block w-3 h-3 rounded-full bg-emerald-500 align-middle"></span> &nbsp; ≥ 10 available — comfortably open.</li>
+  <li><span class="inline-block w-3 h-3 rounded-full bg-amber-400 align-middle"></span> &nbsp; 1–9 available — limited; might fill up by the time a customer commits.</li>
+  <li><span class="inline-block w-3 h-3 rounded-full bg-rose-500 align-middle"></span> &nbsp; 0 or negative — fully booked (or overbooked) for that month.</li>
+</ul>
+
+<h2>Notifications</h2>
+<p>Two surface on the Admin home when relevant — both have inline actions:</p>
+<ul>
+  <li><strong>Embargo may be over</strong> — a model is currently embargoed but has open orders against it. Click <em>Lift embargo</em> to make it visible to dealers again.</li>
+  <li><strong>New bikes</strong> — plan models that appeared in the latest upload but weren't in the previous one. Click <em>Embargo</em> to hide them while they're being prepared, or <em>Dismiss</em> to mark reviewed.</li>
+</ul>
+
+<h2>Weekly routine</h2>
+<ol class="list-decimal pl-5 text-slate-600 mb-3">
+  <li>Drop the two xlsx files into <strong>Admin → Upload</strong>.</li>
+  <li>Open the Admin home and resolve any notifications.</li>
+  <li>Check <strong>Mapping</strong> if the import flagged unmapped SKUs.</li>
+  <li>Use <strong>Dealer view</strong> to spot-check the grid before dealers see it.</li>
+</ol>
+
+<h2>Source data shape</h2>
+<ul>
+  <li><strong>Plan workbook</strong> — the parser reads the <em>Sell In</em> block of the <code>DUK_26</code> and <code>DUK_27</code> sheets (column layout auto-detected). Other blocks (Sell Out, Dealer Inventory, Shipment) are ignored. Ross sometimes overrides DUK totals so the rollup is read directly rather than re-summed from the country sheets.</li>
+  <li><strong>Orders export</strong> — filtered to <code>Order Status Group = Open</code>. The Material column's leading token is the join key. Country values <code>UNITED KINGDOM</code>, <code>CHANNEL ISLANDS</code>, <code>IRELAND</code> are all bucketed as <code>UK</code>; <code>SWEDEN</code> → <code>SWE</code>; <code>NORWAY</code> → <code>NOR</code>.</li>
+</ul>
+
+<h2>Where it lives</h2>
+<ul>
+  <li>Live: <code>{{ request.url_root }}dashboard</code></li>
+  <li>Source: <a href="https://github.com/benfgillespie/ducati-forecast" class="text-blue-600 hover:underline">github.com/benfgillespie/ducati-forecast</a></li>
+  <li>Database: Supabase Postgres (Vercel storage)</li>
+  <li>Local dev: SQLite (<code>app/data/dashboard.db</code>) — see the repo README for setup.</li>
+</ul>
+
+<h2>If something goes wrong</h2>
+<ul>
+  <li><strong>Dealer sees stale data</strong> — re-upload the latest xlsx via Admin → Upload.</li>
+  <li><strong>New SKU appeared and isn't subtracted</strong> — it'll be flagged as unmapped on Mapping; assign it to a plan row.</li>
+  <li><strong>Forgot the admin password</strong> — open the Supabase project's SQL editor and run <code>UPDATE settings SET value='new-password' WHERE key='admin_password';</code></li>
+  <li><strong>Want a clean reset</strong> — same SQL editor: <code>TRUNCATE plan, orders;</code> then re-upload. Dealers/embargoes/mapping stay intact.</li>
+</ul>
+
+</div>
+{% endblock %}

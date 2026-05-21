@@ -184,7 +184,18 @@ def _rolling_months(start=None, n=12):
 @app.route("/dealer")
 @dealer_required
 def dealer_view():
-    dealer = current_dealer()
+    return _render_dealer(current_dealer())
+
+
+@app.route("/admin/preview-dealer")
+@admin_required
+def admin_preview_dealer():
+    # synthetic dealer so the template renders; own-orders panel stays empty
+    fake = {"name": "Admin preview", "country": "UK", "dealer_code": None}
+    return _render_dealer(fake)
+
+
+def _render_dealer(dealer):
     con = db.get_conn()
 
     months = _rolling_months(n=12)
@@ -273,7 +284,7 @@ def dealer_view():
         rows.append({"plan_super": super_for.get(p_model), "plan_model": p_model,
                      "cells": cells, "soonest": soonest})
 
-    # dealer's own committed orders
+    # dealer's own committed orders (skipped for the synthetic admin preview)
     own_orders = []
     if dealer["dealer_code"]:
         own_orders = con.execute(
@@ -315,6 +326,30 @@ def admin_home():
     dealer_count = con.execute("SELECT COUNT(*) AS c FROM dealers").fetchone()["c"]
     order_count = con.execute("SELECT COUNT(*) AS c FROM orders").fetchone()["c"]
     plan_count = con.execute("SELECT COUNT(*) AS c FROM plan").fetchone()["c"]
+
+    # "Embargo may be over" — currently-hidden plan_models that have open orders
+    # against them (orders are flowing => probably no longer embargoed in reality).
+    embargo_review = con.execute(
+        f"SELECT e.plan_model, COUNT(o.id) AS order_count "
+        f"FROM embargoes e "
+        f"JOIN material_map mm ON mm.plan_model = e.plan_model "
+        f"JOIN orders o ON o.material_prefix = mm.material_prefix "
+        f"WHERE (e.manually_hidden=1 OR (e.embargo_until IS NOT NULL "
+        f"       AND e.embargo_until > {db.today_sql()})) "
+        f"GROUP BY e.plan_model "
+        f"ORDER BY order_count DESC"
+    ).fetchall()
+
+    # "New bikes" — plan_models that appeared in an import and haven't been
+    # acknowledged by the admin yet. Excludes any already on the embargoes list.
+    new_models = con.execute(
+        "SELECT pmh.plan_model "
+        "FROM plan_model_history pmh "
+        "LEFT JOIN embargoes e ON e.plan_model = pmh.plan_model "
+        "WHERE pmh.acknowledged=0 AND e.plan_model IS NULL "
+        "ORDER BY pmh.first_seen_at DESC, pmh.plan_model"
+    ).fetchall()
+
     return render_template(
         "admin_home.html",
         last_import=last_import,
@@ -322,7 +357,49 @@ def admin_home():
         dealer_count=dealer_count,
         order_count=order_count,
         plan_count=plan_count,
+        embargo_review=embargo_review,
+        new_models=new_models,
     )
+
+
+@app.route("/admin/notify/lift-embargo", methods=["POST"])
+@admin_required
+def admin_notify_lift_embargo():
+    db.get_conn().execute("DELETE FROM embargoes WHERE plan_model=?", (request.form["plan_model"],))
+    db.get_conn().commit()
+    return redirect(url_for("admin_home"))
+
+
+@app.route("/admin/notify/embargo-new", methods=["POST"])
+@admin_required
+def admin_notify_embargo_new():
+    pm = request.form["plan_model"]
+    con = db.get_conn()
+    con.execute(
+        "INSERT INTO embargoes(plan_model, manually_hidden) VALUES(?, 1) "
+        "ON CONFLICT(plan_model) DO UPDATE SET manually_hidden=1, "
+        "updated_at=CURRENT_TIMESTAMP",
+        (pm,),
+    )
+    con.execute("UPDATE plan_model_history SET acknowledged=1 WHERE plan_model=?", (pm,))
+    con.commit()
+    return redirect(url_for("admin_home"))
+
+
+@app.route("/admin/notify/dismiss-new", methods=["POST"])
+@admin_required
+def admin_notify_dismiss_new():
+    con = db.get_conn()
+    con.execute("UPDATE plan_model_history SET acknowledged=1 WHERE plan_model=?",
+                (request.form["plan_model"],))
+    con.commit()
+    return redirect(url_for("admin_home"))
+
+
+@app.route("/admin/help")
+@admin_required
+def admin_help():
+    return render_template("admin_help.html")
 
 
 # ----- admin: upload --------------------------------------------------
@@ -347,6 +424,10 @@ def admin_upload():
         return redirect(url_for("admin_upload"))
 
     con = db.get_conn()
+    # Snapshot the existing plan_models so we can diff against the new upload.
+    previous_models = {r["plan_model"] for r in con.execute(
+        "SELECT DISTINCT plan_model FROM plan WHERE plan_model IS NOT NULL"
+    ).fetchall()}
     con.execute("DELETE FROM plan")
     con.execute("DELETE FROM orders")
     con.executemany(
@@ -373,6 +454,27 @@ def admin_upload():
         con.execute(
             "INSERT INTO material_map(material_prefix, status) VALUES(?, 'unmapped')",
             (p,),
+        )
+
+    # Models that weren't in the previous plan are flagged for admin review.
+    # On the very first upload (previous_models is empty), nothing is "new" —
+    # we pre-acknowledge everything so the notification panel stays empty until
+    # something actually changes between uploads.
+    seen_models = {p[2] for p in plan_rows}
+    first_upload = not previous_models
+    new_models = (seen_models - previous_models) if not first_upload else set()
+    pre_ack_models = seen_models if first_upload else (seen_models - new_models)
+    for m in sorted(new_models):
+        con.execute(
+            "INSERT INTO plan_model_history(plan_model, acknowledged) VALUES(?, 0) "
+            "ON CONFLICT(plan_model) DO NOTHING",
+            (m,),
+        )
+    for m in sorted(pre_ack_models):
+        con.execute(
+            "INSERT INTO plan_model_history(plan_model, acknowledged) VALUES(?, 1) "
+            "ON CONFLICT(plan_model) DO NOTHING",
+            (m,),
         )
 
     unmapped_total = con.execute(
@@ -545,21 +647,28 @@ def admin_dealers_save():
     country = request.form["country"].strip()
     dealer_code = request.form.get("dealer_code", "").strip() or None
     con = db.get_conn()
-    if dealer_id:
-        con.execute(
-            "UPDATE dealers SET password=?, name=?, country=?, dealer_code=? WHERE id=?",
-            (password, name, country, dealer_code, dealer_id),
-        )
-    else:
-        try:
+    try:
+        if dealer_id:
+            con.execute(
+                "UPDATE dealers SET password=?, name=?, country=?, dealer_code=? WHERE id=?",
+                (password, name, country, dealer_code, dealer_id),
+            )
+        else:
             con.execute(
                 "INSERT INTO dealers(password,name,country,dealer_code) VALUES(?,?,?,?)",
                 (password, name, country, dealer_code),
             )
-        except db.sqlite3.IntegrityError:
+        con.commit()
+    except Exception as e:
+        try:
+            con.raw.rollback()
+        except Exception:
+            pass
+        msg = str(e).lower()
+        if "unique" in msg or "duplicate" in msg:
             flash("That password is already in use.", "error")
-            return redirect(url_for("admin_dealers"))
-    con.commit()
+        else:
+            flash(f"Couldn't save dealer: {e}", "error")
     return redirect(url_for("admin_dealers"))
 
 
