@@ -947,13 +947,13 @@ function dial(pct){
     const [x0,y0]=polar(cx,cy,r0,a), [x1,y1]=polar(cx,cy,r1,a);
     ticks+=`<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${red?'#FF3B3B':'#9AA0A8'}" stroke-width="${major?1.6:1}"/>`;
     if(major){const [lx,ly]=polar(cx,cy,R-19,a);
-      ticks+=`<text x="${lx}" y="${ly}" fill="${red?'#FF6A6A':'#D6DAE0'}" font-family="Rajdhani,sans-serif" font-weight="600" font-size="11" text-anchor="middle" dominant-baseline="central">${i}</text>`;}
+      ticks+=`<text x="${lx}" y="${ly}" fill="${red?'#FF6A6A':'#D6DAE0'}" font-family="Rajdhani,sans-serif" font-weight="600" font-size="11" text-anchor="middle" dy=".34em">${i}</text>`;}
   }
   const redArc=arc(cx,cy,R-1, A0+SW*(10/15), A0+SW);
   const [nx,ny]=polar(cx,cy,R-15,ang);
   const [bx,by]=polar(cx,cy,11,ang+180);
   const num=pct==null?'—':Math.round(pct*100);
-  return `<svg viewBox="0 0 160 160" aria-hidden="true">
+  return `<svg viewBox="-8 -8 176 176" aria-hidden="true">
     <defs><radialGradient id="face${pct==null?'x':''}" cx="50%" cy="44%" r="62%">
       <stop offset="0" stop-color="#1B1E24"/><stop offset="1" stop-color="#0B0C0F"/></radialGradient></defs>
     <circle cx="${cx}" cy="${cy}" r="${R+5}" fill="url(#face${pct==null?'x':''})" stroke="#2A2E36"/>
@@ -961,7 +961,7 @@ function dial(pct){
     ${ticks}
     <line x1="${bx}" y1="${by}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(255,255,255,.4))"/>
     <circle cx="${cx}" cy="${cy}" r="26" fill="#0B0C0F" stroke="${col}" stroke-width="1.8" opacity=".95"/>
-    <text x="${cx}" y="${cy}" fill="${col}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="21" text-anchor="middle" dominant-baseline="central">${num}<tspan font-size="10" fill="#8B919C">${pct==null?'':'%'}</tspan></text>
+    <text x="${cx}" y="${cy}" fill="${col}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="21" text-anchor="middle" dy=".34em">${num}<tspan font-size="10" fill="#8B919C">${pct==null?'':'%'}</tspan></text>
   </svg>`;
 }
 
@@ -991,8 +991,8 @@ function fuelGauge(pct){
     ${pct!=null?`<path d="${fill}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" opacity=".95"/>`:''}
     <path d="${redband}" fill="none" stroke="#FF2A2A" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
     ${ticks}
-    <text x="${Ex}" y="${Ey}" fill="#9AA0A8" font-family="Rajdhani,sans-serif" font-weight="700" font-size="13" text-anchor="middle" dominant-baseline="central">E</text>
-    <text x="${Fx}" y="${Fy}" fill="#E8EAED" font-family="Rajdhani,sans-serif" font-weight="700" font-size="13" text-anchor="middle" dominant-baseline="central">F</text>
+    <text x="${Ex}" y="${Ey}" fill="#9AA0A8" font-family="Rajdhani,sans-serif" font-weight="700" font-size="13" text-anchor="middle" dy=".34em">E</text>
+    <text x="${Fx}" y="${Fy}" fill="#E8EAED" font-family="Rajdhani,sans-serif" font-weight="700" font-size="13" text-anchor="middle" dy=".34em">F</text>
     <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.4" stroke-linecap="round" style="filter:drop-shadow(0 0 2px rgba(255,255,255,.5))"/>
     <circle cx="${cx}" cy="${cy}" r="4.5" fill="#F4F5F6"/>
   </svg>`;
