@@ -150,6 +150,8 @@
   .rankchip b{font-family:var(--disp);font-size:24px;font-weight:700;line-height:1;color:#fff}
   .rankchip span{font-size:11.5px;color:#9aa0a8;letter-spacing:.5px}
   .rankchip em{font-style:normal;color:#FF5252;font-family:var(--disp);font-weight:700}
+  .rankchip .trophy{width:23px;height:23px;align-self:center;margin-right:3px;
+    filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.3))}
 
   .hstats{display:grid;grid-template-rows:auto 1fr;gap:14px}
   .dealhdr{background:var(--surf);border:1px solid var(--line);border-radius:16px;
@@ -1021,10 +1023,27 @@ function val(lbl,v,suffix=''){
   return `<div class="flag"><span class="lbl">${lbl}</span><span class="pill v">${v==null?'—':v+suffix}</span></div>`;
 }
 
+function trophy(rank){
+  if(!rank || rank>3) return '';
+  const c = rank===1 ? {a:'#FFE082',b:'#E0A91B',r:'#9c7400'}
+          : rank===2 ? {a:'#EDF1F5',b:'#AEB7C2',r:'#7d8893'}
+                     : {a:'#E8AE78',b:'#B5712F',r:'#824e1c'};
+  return `<svg class="trophy" viewBox="0 0 24 24" aria-hidden="true">
+    <defs><linearGradient id="tg${rank}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${c.a}"/><stop offset="1" stop-color="${c.b}"/></linearGradient></defs>
+    <path d="M6.7 4.7 C5 4.7 4 6 4 7.2 C4 9 5.4 10.2 7.2 10.2" fill="none" stroke="${c.b}" stroke-width="1.3"/>
+    <path d="M17.3 4.7 C19 4.7 20 6 20 7.2 C20 9 18.6 10.2 16.8 10.2" fill="none" stroke="${c.b}" stroke-width="1.3"/>
+    <path d="M6.4 3.4 H17.6 V6.2 C17.6 10.8 15.1 13.4 12 13.4 C8.9 13.4 6.4 10.8 6.4 6.2 Z" fill="url(#tg${rank})" stroke="${c.r}" stroke-width=".6"/>
+    <rect x="10.9" y="13.1" width="2.2" height="3" fill="${c.b}"/>
+    <rect x="8.7" y="15.8" width="6.6" height="2.1" rx=".5" fill="url(#tg${rank})" stroke="${c.r}" stroke-width=".5"/>
+    <path d="M7.9 18 H16.1 L15.5 20.7 H8.5 Z" fill="url(#tg${rank})" stroke="${c.r}" stroke-width=".5"/>
+  </svg>`;
+}
+
 
 function renderPerf(d){
   const so=d.sellout;
-  const rank = d.rank?`<b>P${d.rank}</b><span>of <em>${d.rankTotal}</em> · % to target in quarter</span>`:`<span>No bike target set this quarter</span>`;
+  const rank = d.rank?`${trophy(d.rank)}<b>P${d.rank}</b><span>of <em>${d.rankTotal}</em> · % to target in quarter</span>`:`<span>No bike target set this quarter</span>`;
   const tr=d.training||{}, nps=d.nps||{}, ql=d.quality||{};
   const trPct=(tr.my26_done!=null&&tr.my26_avail)?tr.my26_done/tr.my26_avail:null;
   const tr27Pct=(tr.my27_done!=null&&tr.my27_avail)?tr.my27_done/tr.my27_avail:null;
