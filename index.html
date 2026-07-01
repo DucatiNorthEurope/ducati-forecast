@@ -978,7 +978,7 @@ function dial(pct){
     ${ticks}
     <line x1="${bx}" y1="${by}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(255,255,255,.4))"/>
     <circle cx="${cx}" cy="${cy}" r="26" fill="#0B0C0F" stroke="${col}" stroke-width="1.8" opacity=".95"/>
-    <text x="${cx}" y="${cy}" fill="${col}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="21" text-anchor="middle" dy=".34em">${num}<tspan font-size="10" fill="#8B919C">${pct==null?'':'%'}</tspan></text>
+    <text x="${cx}" y="${cy}" fill="${col}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="18" text-anchor="middle" dy=".34em">${num}${pct==null?'':'%'}</text>
   </svg>`;
 }
 
