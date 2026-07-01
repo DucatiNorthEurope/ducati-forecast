@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ducati Dealer Forecast Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f4f0; min-height: 100vh; }
@@ -117,6 +118,8 @@
   .top{display:flex;align-items:center;justify-content:space-between;gap:14px;
     padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:22px;flex-wrap:wrap}
   .topright{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .perfbrand{height:38px;display:flex;align-items:center}
+  .perfbrand img{height:38px;width:auto;display:block}
   .updated{font-size:12px;letter-spacing:.2px;color:var(--mut);display:inline-flex;
     align-items:center;gap:7px}
   .updated:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--good)}
@@ -219,6 +222,15 @@
 
   .perftop{display:flex;justify-content:flex-end;padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid #e8e6e0}
   .perf .empty-state{padding:60px 24px}
+  #perf-toolbar{display:flex;justify-content:flex-end;padding:0 24px;margin-bottom:-6px}
+  .perftop{justify-content:space-between !important;align-items:center}
+  .perfbrand{height:38px;display:flex;align-items:center}
+  .perfbrand img{height:38px;width:auto;display:block}
+  .perf-pdf-btn{font-family:inherit;font-size:13px;font-weight:600;color:#CC0000;background:#fff;
+    border:1px solid #e2b3b3;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .perf-pdf-btn:before{content:"\2193";font-weight:700}
+  .perf-pdf-btn:hover{background:#fdf2f2;border-color:#CC0000}
+  .perf-pdf-btn:disabled{opacity:.6;cursor:default}
 </style>
 </head>
 <body>
@@ -351,6 +363,9 @@
         <div class="login-error" id="perfLoginError"></div>
         <button class="login-btn" onclick="checkPerfPw()">View my performance</button>
       </div>
+    </div>
+    <div id="perf-toolbar" style="display:none;">
+      <button id="perfPdfBtn" class="perf-pdf-btn" onclick="downloadPerfPDF()">Download PDF</button>
     </div>
     <div id="perf-content" class="content" style="display:none;"></div>
   </div>
@@ -1054,7 +1069,7 @@ function renderPerf(d){
   const trPct=(tr.my26_done!=null&&tr.my26_avail)?tr.my26_done/tr.my26_avail:null;
   const tr27Pct=(tr.my27_done!=null&&tr.my27_avail)?tr.my27_done/tr.my27_avail:null;
   return `<div class="perf">
-    <div class="perftop"><div class="updated">Updated <b>${d.updated||'—'}</b></div></div>
+    <div class="perftop"><div class="perfbrand">${SHIELD}</div><div class="updated">Updated <b>${d.updated||'—'}</b></div></div>
     <div class="hero">
       <div class="gauge-card">
         <div class="eyebrow">Bike registrations · % to target</div>
@@ -1135,10 +1150,31 @@ async function loadPerformance(dealer, password){
 function showPerfLogin(){
   document.getElementById('perf-login').style.display='flex';
   document.getElementById('perf-content').style.display='none';
+  document.getElementById('perf-toolbar').style.display='none';
 }
 function showPerfContent(){
   document.getElementById('perf-login').style.display='none';
   document.getElementById('perf-content').style.display='block';
+  document.getElementById('perf-toolbar').style.display='flex';
+}
+
+function downloadPerfPDF(){
+  const el = document.getElementById('perf-content');
+  if(!el || !window.html2pdf){ return; }
+  const btn = document.getElementById('perfPdfBtn');
+  const label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled=true; btn.textContent='Preparing…'; }
+  const safe = (currentDealer||'Dealer').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  const opt = {
+    margin: 8,
+    filename: safe+'_Performance.pdf',
+    image: {type:'jpeg', quality:0.98},
+    html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true},
+    jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
+    pagebreak: {mode:['css','legacy']}
+  };
+  html2pdf().set(opt).from(el).save().then(()=>{ if(btn){ btn.disabled=false; btn.textContent=label; } })
+    .catch(()=>{ if(btn){ btn.disabled=false; btn.textContent=label; } });
 }
 
 function initPerfPicker(){
