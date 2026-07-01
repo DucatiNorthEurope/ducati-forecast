@@ -1173,8 +1173,38 @@ function downloadPerfPDF(){
     jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
     pagebreak: {mode:['css','legacy']}
   };
-  html2pdf().set(opt).from(el).save().then(()=>{ if(btn){ btn.disabled=false; btn.textContent=label; } })
-    .catch(()=>{ if(btn){ btn.disabled=false; btn.textContent=label; } });
+  const restores = [];
+  function finish(){
+    restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); });
+    if(btn){ btn.disabled=false; btn.textContent=label; }
+  }
+  // html2canvas can't rasterise inline <svg>; swap each gauge for a PNG snapshot first.
+  const svgs = Array.from(el.querySelectorAll('svg'));
+  Promise.all(svgs.map(svg => new Promise(resolve => {
+    const rect = svg.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('width', w); clone.setAttribute('height', h);
+    const data = new XMLSerializer().serializeToString(clone);
+    const uri = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+    const img = new Image();
+    img.onload = () => {
+      const sc = 2, c = document.createElement('canvas');
+      c.width = w*sc; c.height = h*sc;
+      c.getContext('2d').drawImage(img, 0, 0, w*sc, h*sc);
+      const png = document.createElement('img');
+      png.src = c.toDataURL('image/png');
+      const cs = getComputedStyle(svg);
+      png.style.width = w+'px'; png.style.height = h+'px'; png.style.display='block'; png.style.margin = cs.margin;
+      svg.parentNode.replaceChild(png, svg);
+      restores.push({svg, png});
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = uri;
+  }))).then(() => html2pdf().set(opt).from(el).save().then(finish).catch(finish))
+      .catch(finish);
 }
 
 function initPerfPicker(){
