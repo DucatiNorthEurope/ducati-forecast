@@ -944,8 +944,8 @@ function money(n){ if(n==null) return '—';
   return '£'+Math.round(n).toLocaleString('en-GB'); }
 function intv(n){ return n==null?'—':Math.round(n).toLocaleString('en-GB'); }
 function pctFmt(p){ return p==null?'—':Math.round(p*100)+'%'; }
-function tone(p){ if(p==null) return 'var(--mut)';
-  if(p>=1) return 'var(--good)'; if(p>=0.85) return 'var(--warn)'; return 'var(--bad)'; }
+function tone(p){ if(p==null) return '#888';
+  if(p>=1) return '#1aa05a'; if(p>=0.85) return '#C9881E'; return '#D43A3A'; }
 
 function polar(cx,cy,r,deg){const a=(deg-90)*Math.PI/180;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
 function arc(cx,cy,r,a0,a1){const[x0,y0]=polar(cx,cy,r,a0),[x1,y1]=polar(cx,cy,r,a1);
@@ -978,7 +978,7 @@ function dial(pct){
     ${ticks}
     <line x1="${bx}" y1="${by}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(255,255,255,.4))"/>
     <circle cx="${cx}" cy="${cy}" r="26" fill="#0B0C0F" stroke="${col}" stroke-width="1.8" opacity=".95"/>
-    <text x="${cx}" y="${cy}" fill="${col}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="18" text-anchor="middle" dy=".34em">${num}${pct==null?'':'%'}</text>
+    <text x="${cx}" y="${cy}" fill="${pct==null?'#8B919C':(pct>=1?'#3DDC84':pct>=0.85?'#F5B93D':'#FF6B6B')}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="18" text-anchor="middle" dy=".34em">${num}${pct==null?'':'%'}</text>
   </svg>`;
 }
 
@@ -1168,7 +1168,7 @@ function downloadPerfPDF(){
   const opt = {
     margin: 8,
     filename: safe+'_Performance.pdf',
-    image: {type:'jpeg', quality:0.98},
+    image: {type:'png', quality:1},
     html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true},
     jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
     pagebreak: {mode:['css','legacy']}
