@@ -144,6 +144,9 @@
   .dials{display:flex;gap:8px;justify-content:center;margin:8px 0 2px}
   .dial{flex:1;min-width:0}
   .dial svg{width:100%;height:auto;display:block}
+  .gneedle{transition:transform .9s cubic-bezier(.22,1,.36,1)}
+  .gfill{transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)}
+  @media (prefers-reduced-motion: reduce){ .gneedle,.gfill{transition:none} }
   .dial .dlabel{font-size:10px;letter-spacing:1.2px;color:#9aa0a8;text-transform:uppercase;
     font-weight:600;margin-top:-4px}
   .glabel{font-size:11.5px;color:#9aa0a8;letter-spacing:.4px;margin-top:8px}
@@ -969,16 +972,19 @@ function dial(pct){
   const redArc=arc(cx,cy,R-1, A0+SW*(10/15), A0+SW);
   const [nx,ny]=polar(cx,cy,R-15,ang);
   const [bx,by]=polar(cx,cy,11,ang+180);
-  const num=pct==null?'—':Math.round(pct*100);
+  const num=pct==null?null:Math.round(pct*100);
+  const numCol=pct==null?'#8B919C':(pct>=1?'#3DDC84':pct>=0.85?'#F5B93D':'#FF6B6B');
   return `<svg viewBox="-8 -8 176 176" aria-hidden="true">
     <defs><radialGradient id="face${pct==null?'x':''}" cx="50%" cy="44%" r="62%">
       <stop offset="0" stop-color="#1B1E24"/><stop offset="1" stop-color="#0B0C0F"/></radialGradient></defs>
     <circle cx="${cx}" cy="${cy}" r="${R+5}" fill="url(#face${pct==null?'x':''})" stroke="#2A2E36"/>
     <path d="${redArc}" fill="none" stroke="#FF2A2A" stroke-width="3.5" stroke-linecap="round" opacity=".92"/>
     ${ticks}
-    <line x1="${bx}" y1="${by}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(255,255,255,.4))"/>
+    <g class="gneedle" style="transform-origin:${cx}px ${cy}px;transform:rotate(${(A0-ang).toFixed(1)}deg)">
+      <line x1="${bx}" y1="${by}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.6" stroke-linecap="round" style="filter:drop-shadow(0 0 3px rgba(255,255,255,.4))"/>
+    </g>
     <circle cx="${cx}" cy="${cy}" r="26" fill="#0B0C0F" stroke="${col}" stroke-width="1.8" opacity=".95"/>
-    <text x="${cx}" y="${cy}" fill="${pct==null?'#8B919C':(pct>=1?'#3DDC84':pct>=0.85?'#F5B93D':'#FF6B6B')}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="18" text-anchor="middle" dy=".34em">${num}${pct==null?'':'%'}</text>
+    <text class="${num==null?'':'gaugenum'}" data-target="${num==null?'':num}" data-suffix="%" x="${cx}" y="${cy}" fill="${numCol}" font-family="Rajdhani,sans-serif" font-weight="700" font-size="18" text-anchor="middle" dy=".34em">${num==null?'—':num+'%'}</text>
   </svg>`;
 }
 
@@ -997,7 +1003,9 @@ function fuelGauge(pct){
     ticks+=`<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${p>100?'#FF3B3B':'#8A909A'}" stroke-width="${major?2:1.3}"/>`;
   }
   const base=arc(cx,cy,R,A0,A1);
-  const fill=arc(cx,cy,R,A0,Math.max(A0+0.4,ang));
+  const fillEnd=Math.max(A0+0.4,ang);
+  const fill=arc(cx,cy,R,A0,fillEnd);
+  const fillLen=(R*(fillEnd-A0)*Math.PI/180).toFixed(2);
   const redband=arc(cx,cy,R+6,Fang,A1);
   const [nx,ny]=polar(cx,cy,R-6,ang);
   const [Ex,Ey]=polar(cx,cy,R-21,A0);
@@ -1005,12 +1013,14 @@ function fuelGauge(pct){
   return `<svg viewBox="0 0 300 90" class="fg" aria-hidden="true">
     <rect x="2" y="2" width="296" height="86" rx="12" fill="#14161b" stroke="#0a0b0e"/>
     <path d="${base}" fill="none" stroke="#3a3f48" stroke-width="5" stroke-linecap="round"/>
-    ${pct!=null?`<path d="${fill}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" opacity=".95"/>`:''}
+    ${pct!=null?`<path class="gfill" d="${fill}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" opacity=".95" stroke-dasharray="${fillLen}" stroke-dashoffset="${fillLen}"/>`:''}
     <path d="${redband}" fill="none" stroke="#FF2A2A" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
     ${ticks}
     <text x="${Ex}" y="${Ey}" fill="#9AA0A8" font-family="Rajdhani,sans-serif" font-weight="700" font-size="13" text-anchor="middle" dy=".34em">E</text>
     <text x="${Fx}" y="${Fy}" fill="#E8EAED" font-family="Rajdhani,sans-serif" font-weight="700" font-size="13" text-anchor="middle" dy=".34em">F</text>
-    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.4" stroke-linecap="round" style="filter:drop-shadow(0 0 2px rgba(255,255,255,.5))"/>
+    <g class="gneedle" style="transform-origin:${cx}px ${cy}px;transform:rotate(${(A0-ang).toFixed(1)}deg)">
+      <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#F4F5F6" stroke-width="2.4" stroke-linecap="round" style="filter:drop-shadow(0 0 2px rgba(255,255,255,.5))"/>
+    </g>
     <circle cx="${cx}" cy="${cy}" r="4.5" fill="#F4F5F6"/>
   </svg>`;
 }
@@ -1028,7 +1038,7 @@ function catCard(name, c, unit, suffix, showCO){
        <div class="nums co"><span>Incl. carry-over <b>${fmt(c.q_act_co)}</b></span></div>`
     : `<div class="nums"><span>Actual <b>${fmt(c.q_act_co)}</b></span><span>Q target <b>${tgtLabel}</b></span></div>`;
   return `<div class="cat">
-    <div class="row1"><div class="name">${name}</div><div class="pct" style="color:${col}">${pctFmt(p)}</div></div>
+    <div class="row1"><div class="name">${name}</div><div class="pct${p==null?'':' pctnum'}" data-target="${p==null?'':Math.round(p*100)}" style="color:${col}">${pctFmt(p)}</div></div>
     ${fuelGauge(p)}
     ${nums}
   </div>`;
@@ -1042,6 +1052,33 @@ function flag(lbl,val){
 }
 function val(lbl,v,suffix=''){
   return `<div class="flag"><span class="lbl">${lbl}</span><span class="pill v">${v==null?'—':v+suffix}</span></div>`;
+}
+
+// Kicks off the "fill up" animation: sweeps needles, draws in fuel-gauge fills,
+// and counts numbers up. Cheap — just style/attribute flips, no libraries.
+function animateGauges(root){
+  root = root || document;
+  const DUR = 900;
+  root.querySelectorAll('.gneedle').forEach(g=>{
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ g.style.transform='rotate(0deg)'; }));
+  });
+  root.querySelectorAll('.gfill').forEach(p=>{
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ p.style.strokeDashoffset='0'; }));
+  });
+  function countUp(el, suffix){
+    const target=parseFloat(el.getAttribute('data-target'));
+    if(isNaN(target)) return;
+    const start=performance.now();
+    function step(now){
+      const k=Math.min(1,(now-start)/DUR);
+      const eased=1-Math.pow(1-k,3);
+      el.textContent=Math.round(target*eased)+suffix;
+      if(k<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  root.querySelectorAll('.gaugenum').forEach(el=>countUp(el, el.getAttribute('data-suffix')||''));
+  root.querySelectorAll('.pctnum').forEach(el=>countUp(el, '%'));
 }
 
 function trophy(rank){
@@ -1142,6 +1179,7 @@ async function loadPerformance(dealer, password){
       return;
     }
     mount.innerHTML=renderPerf(j.data);
+    animateGauges(mount);
   }catch(e){
     mount.innerHTML='<div class="empty-state">Could not load performance right now. Please try again.</div>';
   }
