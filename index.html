@@ -171,6 +171,8 @@
   .fycell{background:var(--surf);border:1px solid var(--line);border-radius:13px;padding:14px 15px}
   .fycell .k{font-size:10.5px;letter-spacing:1.5px;color:var(--mut2);text-transform:uppercase;font-weight:600}
   .fycell .v{font-family:var(--disp);font-weight:700;font-size:27px;margin-top:5px;line-height:1}
+  .fycell .fypct{display:inline-block;font-family:var(--disp);font-weight:700;font-size:13px;
+    margin-left:8px;vertical-align:2px;background:var(--surf2);border-radius:6px;padding:2px 7px}
   .fycell .s{font-size:11.5px;color:var(--mut);margin-top:3px}
 
   /* section heads */
@@ -1123,7 +1125,7 @@ function renderPerf(d){
           <div class="qtag">${d.quarter}</div>
         </div>
         <div class="fy">
-          <div class="fycell"><div class="k">Bikes FY</div><div class="v">${intv(so.fy_act)}<small style="font-size:15px;color:var(--mut)"> / ${intv(so.fy_target)}</small></div><div class="s">full-year registrations vs target</div></div>
+          <div class="fycell"><div class="k">Bikes FY</div><div class="v">${intv(so.fy_act)}<small style="font-size:15px;color:var(--mut)"> / ${intv(so.fy_target)}</small><span class="fypct${so.fy_target?' pctnum':''}" data-target="${so.fy_target?Math.round((so.fy_act||0)/so.fy_target*100):''}" style="color:${tone(so.fy_target?(so.fy_act||0)/so.fy_target:null)}">${so.fy_target?pctFmt((so.fy_act||0)/so.fy_target):''}</span></div><div class="s">full-year registrations vs target</div></div>
           <div class="fycell"><div class="k">Sell-in (Q)</div><div class="v">${intv(d.sellin_q)}</div><div class="s">bikes invoiced to dealer</div></div>
           <div class="fycell"><div class="k">Demo bikes (Q)</div><div class="v">${intv(d.demo?.q_act)}</div><div class="s">demo fleet activity</div></div>
         </div>
