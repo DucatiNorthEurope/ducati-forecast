@@ -190,6 +190,12 @@
   .cat .pct{font-family:var(--disp);font-weight:700;font-size:22px;line-height:1}
   .bar{height:7px;border-radius:99px;background:var(--surf2);margin:12px 0 10px;overflow:hidden;position:relative}
   .fg{width:88%;max-width:300px;height:auto;display:block;margin:6px auto 4px}
+  .fgpair{display:flex;gap:14px;margin-top:6px}
+  .fgcol{flex:1;min-width:0;text-align:center}
+  .fgcol .fg{width:100%;max-width:none;margin:0 auto}
+  .fglabel{font-size:11px;letter-spacing:.6px;color:var(--mut);text-transform:uppercase;
+    font-weight:600;margin-top:6px;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .fglabel .fgpct{font-family:var(--disp);font-size:16px;font-weight:700;letter-spacing:0;text-transform:none}
   .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;display:block}
   .bar .tgtmark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--mut);opacity:.7}
   .cat .nums{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
@@ -1066,18 +1072,24 @@ function fuelGauge(pct){
 function catCard(name, c, unit, suffix, showCO){
   const sfx = suffix?suffix:'';
   const fmt = v => unit==='money'?money(v):(v==null?'—':intv(v)+sfx);
-  // when showCO, the gauge and headline % run on actual spend IN QUARTER
+  // when showCO, show two gauges: actual spend in quarter, and including carry-over
   const inqPct = (c.q_target ? (c.q_act==null?null:c.q_act/c.q_target) : null);
-  const p = showCO ? inqPct : c.pct;
-  const col=tone(p);
+  const coPct = showCO ? c.pct : null;
+  const headline = showCO ? inqPct : c.pct;
+  const col=tone(headline);
   const tgtLabel = fmt(c.q_target);
+  const gaugeCol=(p,label)=>`<div class="fgcol">${fuelGauge(p)}<div class="fglabel">${label}
+    <span class="fgpct${p==null?'':' pctnum'}" data-target="${p==null?'':Math.round(p*100)}" style="color:${tone(p)}">${pctFmt(p)}</span></div></div>`;
+  const gauges = showCO
+    ? `<div class="fgpair">${gaugeCol(inqPct,'In quarter')}${gaugeCol(coPct,'Inc. carry-over')}</div>`
+    : fuelGauge(headline);
   const nums = showCO
     ? `<div class="nums"><span>In quarter <b>${fmt(c.q_act)}</b></span><span>Q target <b>${tgtLabel}</b></span></div>
        <div class="nums co"><span>Incl. carry-over <b>${fmt(c.q_act_co)}</b></span></div>`
     : `<div class="nums"><span>Actual <b>${fmt(c.q_act_co)}</b></span><span>Q target <b>${tgtLabel}</b></span></div>`;
-  return `<div class="cat">
-    <div class="row1"><div class="name">${name}</div><div class="pct${p==null?'':' pctnum'}" data-target="${p==null?'':Math.round(p*100)}" style="color:${col}">${pctFmt(p)}</div></div>
-    ${fuelGauge(p)}
+  return `<div class="cat${showCO?' full':''}">
+    <div class="row1"><div class="name">${name}</div><div class="pct${headline==null?'':' pctnum'}" data-target="${headline==null?'':Math.round(headline*100)}" style="color:${col}">${pctFmt(headline)}</div></div>
+    ${gauges}
     ${nums}
   </div>`;
 }
