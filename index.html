@@ -236,6 +236,18 @@
   .perf-pdf-btn:before{content:"\2193";font-weight:700}
   .perf-pdf-btn:hover{background:#fdf2f2;border-color:#CC0000}
   .perf-pdf-btn:disabled{opacity:.6;cursor:default}
+  .statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 20px;margin-bottom:4px}
+  @media(max-width:620px){.statgrid{grid-template-columns:1fr}}
+  .statline{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;
+    background:#faf9f6;border:1px solid #eee;border-radius:8px;font-size:13px}
+  .statline .lbl{font-weight:600;color:#333}
+  .admintablewrap{overflow-x:auto;border:1px solid #eee;border-radius:10px;max-height:460px;overflow-y:auto}
+  table.adminperftable{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+  table.adminperftable th{position:sticky;top:0;background:#fafafa;text-align:left;padding:8px 10px;
+    font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:#999;border-bottom:1px solid #eee}
+  table.adminperftable td{padding:7px 10px;border-bottom:1px solid #f2f2f2}
+  table.adminperftable td.n{text-align:right;font-variant-numeric:tabular-nums}
+  table.adminperftable tbody tr:hover{background:#faf9f6}
 </style>
 </head>
 <body>
@@ -395,6 +407,13 @@
         <div class="admin-grid" id="adminMetrics"></div>
         <div id="missingDealers"></div>
         <div class="card" style="padding:16px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <span class="section-title" style="margin:0;">Network Performance</span>
+            <span style="font-size:12px;color:#888;">every dealer's scorecard, no dealer login needed</span>
+          </div>
+          <div id="adminPerfOverview"><div class="empty-state">Loading…</div></div>
+        </div>
+        <div class="card" style="padding:16px 20px;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
             <span class="section-title" style="margin:0;">Submitted Forecasts</span>
             <div class="filter-row" style="flex:1;justify-content:flex-end;">
@@ -413,10 +432,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzS_iVXASvnsu9qDlD6qnSOtl9NS3Soj4i0JeqtMIQnL-PBfyBRuJ4s3JcF1VN40f3G/exec";
-const ADMIN_PW = "BorgoPanigale2026!";
 let adminAuthed = false;
 let currentDealer = "";
 let currentPassword = "";
+let currentAdminPassword = "";
 let submissions = [];
 
 const DEALERS = [
@@ -708,18 +727,33 @@ async function submitNilReturn() {
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
-function checkAdminPw() {
+async function checkAdminPw() {
   const val = document.getElementById('adminPwInput').value;
-  if (val === ADMIN_PW) {
-    adminAuthed = true;
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-content').style.display = 'block';
-    document.getElementById('logoutBtn').style.display = 'block';
-    loadAdminData();
-  } else {
-    document.getElementById('adminLoginError').textContent = 'Incorrect password. Please try again.';
-    document.getElementById('adminPwInput').value = '';
-    document.getElementById('adminPwInput').focus();
+  const err = document.getElementById('adminLoginError');
+  err.textContent = '';
+  if (!val) { err.textContent = 'Please enter your password.'; return; }
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  try {
+    const res = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'verifyAdmin', password: val }) });
+    const j = await res.json();
+    document.getElementById('loadingOverlay').style.display = 'none';
+    if (j.ok) {
+      adminAuthed = true;
+      currentAdminPassword = val;
+      document.getElementById('admin-login').style.display = 'none';
+      document.getElementById('admin-content').style.display = 'block';
+      document.getElementById('logoutBtn').style.display = 'block';
+      loadAdminData();
+      loadAdminPerformanceOverview();
+    } else {
+      err.textContent = 'Incorrect password. Please try again.';
+      document.getElementById('adminPwInput').value = '';
+      document.getElementById('adminPwInput').focus();
+    }
+  } catch (e) {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    err.textContent = 'Could not verify right now. Please try again.';
   }
 }
 
@@ -731,6 +765,8 @@ function adminLogout() {
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('adminPwInput').value = '';
   document.getElementById('adminLoginError').textContent = '';
+  currentAdminPassword = '';
+  document.getElementById('adminPerfOverview').innerHTML = '';
 }
 
 async function loadAdminData() {
@@ -1274,6 +1310,91 @@ async function checkPerfPw(){
 function openPerformanceTab(){
   if(currentDealer && currentPassword){ showPerfContent(); loadPerformance(currentDealer,currentPassword); }
   else { showPerfLogin(); }
+}
+
+// ===== Admin: network performance overview (no per-dealer login needed) =====
+function achieveStats(dealers, getInQ, getCO, target){
+  let inQ=0, co=0, n=0;
+  const hasCO = !!getCO;
+  dealers.forEach(d=>{
+    const t=target(d); if(t==null) return;
+    n++;
+    if(getInQ(d)>=1) inQ++;
+    if(hasCO && getCO(d)>=1) co++;
+  });
+  return {inQ, co: hasCO?co:null, n};
+}
+
+function renderAdminPerformanceOverview(payload){
+  const mount=document.getElementById('adminPerfOverview');
+  const dealers=(payload.dealers||[]).slice().sort((a,b)=>(a.rank??999)-(b.rank??999) || a.dealer.localeCompare(b.dealer));
+  if(!dealers.length){ mount.innerHTML='<div class="empty-state">No performance data has been uploaded yet.</div>'; return; }
+
+  const catPct=(d,key)=>{ const c=d[key]; return c && c.q_target ? c.q_act/c.q_target : null; };
+  const catCoPct=(d,key)=>{ const c=d[key]; return c ? c.pct : null; };
+  const simplePct=(d,key)=>{ const c=d[key]; return c && c.q_target ? c.q_act/c.q_target : null; };
+
+  function statLine(label, inQCount, coCount, n){
+    const co = coCount==null ? '' :
+      ` <span style="color:#aaa;">·</span> <b style="color:#222;">${coCount}</b><span style="color:#888;"> inc. carry-over</span>`;
+    return `<div class="statline"><span class="lbl">${label}</span>
+      <span><b style="color:#222;">${inQCount}</b><span style="color:#888;"> of ${n} in quarter</span>${co}</span></div>`;
+  }
+
+  const bikes = achieveStats(dealers, d=>catPct(d,'sellout')||0, d=>catCoPct(d,'sellout')||0, d=>d.sellout&&d.sellout.q_target);
+  const app   = achieveStats(dealers, d=>catPct(d,'apparel')||0, d=>catCoPct(d,'apparel')||0, d=>d.apparel&&d.apparel.q_target);
+  const acc   = achieveStats(dealers, d=>catPct(d,'accessories')||0, d=>catCoPct(d,'accessories')||0, d=>d.accessories&&d.accessories.q_target);
+  const ccl   = achieveStats(dealers, d=>catPct(d,'cclass')||0, d=>catCoPct(d,'cclass')||0, d=>d.cclass&&d.cclass.q_target);
+  const pir   = achieveStats(dealers, d=>simplePct(d,'pirelli')||0, null, d=>d.pirelli&&d.pirelli.q_target);
+  const shl   = achieveStats(dealers, d=>simplePct(d,'shell')||0, null, d=>d.shell&&d.shell.q_target);
+
+  const statsHtml = `<div class="statgrid">
+    ${statLine('Bikes', bikes.inQ, bikes.co, bikes.n)}
+    ${statLine('Apparel', app.inQ, app.co, app.n)}
+    ${statLine('Accessories', acc.inQ, acc.co, acc.n)}
+    ${statLine('C-Class', ccl.inQ, ccl.co, ccl.n)}
+    ${statLine('Pirelli', pir.inQ, null, pir.n)}
+    ${statLine('Shell', shl.inQ, null, shl.n)}
+  </div>`;
+
+  const cell = (p) => p==null ? '<td class="n">—</td>'
+    : `<td class="n" style="color:${tone(p)};font-weight:700;">${Math.round(p*100)}%</td>`;
+
+  const rows = dealers.map(d=>{
+    const soInQ = catPct(d,'sellout'), soCoP = catCoPct(d,'sellout');
+    return `<tr>
+      <td>${d.rank?('P'+d.rank):'—'}</td>
+      <td>${d.dealer}</td>
+      ${cell(soInQ)}${cell(soCoP)}
+      ${cell(catPct(d,'apparel'))}${cell(catPct(d,'accessories'))}${cell(catPct(d,'cclass'))}
+      ${cell(simplePct(d,'pirelli'))}${cell(simplePct(d,'shell'))}
+    </tr>`;
+  }).join('');
+
+  mount.innerHTML = statsHtml + `
+    <div style="font-size:11px;color:#999;margin:14px 0 6px;">Updated <b style="color:#444;">${payload.updated||'—'}</b> · Quarter ${payload.quarter||'—'} · bike/apparel/accessories/C-Class % shown in-quarter unless marked</div>
+    <div class="admintablewrap"><table class="adminperftable">
+      <thead><tr><th>Pos</th><th>Dealer</th><th class="n">Bikes (Q)</th><th class="n">Bikes (CO)</th>
+        <th class="n">Apparel</th><th class="n">Accessories</th><th class="n">C-Class</th><th class="n">Pirelli</th><th class="n">Shell</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+async function loadAdminPerformanceOverview(){
+  const mount=document.getElementById('adminPerfOverview');
+  mount.innerHTML='<div class="empty-state">Loading…</div>';
+  try{
+    const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'adminAllPerformance',password:currentAdminPassword})});
+    const j=await res.json();
+    if(!j.ok){
+      mount.innerHTML='<div class="empty-state">Could not load performance data'+(j.error==='nodata'?' — the Performance tab looks empty.':'.')+'</div>';
+      return;
+    }
+    renderAdminPerformanceOverview(j);
+  }catch(e){
+    mount.innerHTML='<div class="empty-state">Could not load performance data right now.</div>';
+  }
 }
 
 initDealerPicker();
