@@ -22,6 +22,8 @@
   .nav-btn { font-family:'Rajdhani',sans-serif; padding: 12px 22px; font-size: 14px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color: #888; cursor: pointer; border: none; background: none; border-bottom: 3px solid transparent; transition: all 0.15s; }
   .nav-btn.active { color: #CC0000; border-bottom-color: #CC0000; }
   .nav-btn:hover:not(.active) { color: #333; background: #fafafa; }
+  .nav-link { text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
+  .nav-link:after { content:"↗"; font-size:11px; opacity:.6; }
   .content { padding: 24px; }
   .section { display: none; }
   .section.active { display: block; }
@@ -91,8 +93,10 @@
   .pw-hint { font-size: 12px; color: #aaa; margin-bottom: 10px; font-style: italic; }
   .login-btn { width: 100%; padding: 10px; background: #CC0000; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px; font-family: inherit; }
   .login-btn:hover { background: #aa0000; }
-  .logout-btn { padding: 6px 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; margin-left: auto; font-family: inherit; }
+  .logout-btn { padding: 6px 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; font-family: inherit; }
   .logout-btn:hover { background: rgba(255,255,255,0.2); }
+  .admin-discreet { background:none; border:none; color:rgba(255,255,255,.4); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:4px 2px; margin-left:auto; font-family:inherit; }
+  .admin-discreet:hover { color:rgba(255,255,255,.85); }
   .section-title { font-family:'Rajdhani',sans-serif; font-size: 18px; font-weight: 700; color: #222; letter-spacing:.02em; }
   .back-link { background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; text-decoration: underline; margin-top: 12px; display: inline-block; font-family: inherit; }
   .back-link:hover { color: #555; }
@@ -262,6 +266,11 @@
   .adminDealerLink{font:inherit;color:#CC0000;background:none;border:none;padding:0;cursor:pointer;
     font-weight:600;text-align:left}
   .adminDealerLink:hover{text-decoration:underline}
+  .adminPdfBtn{background:none;border:none;padding:0;margin-left:7px;cursor:pointer;vertical-align:middle;opacity:.7;line-height:0}
+  .adminPdfBtn:hover{opacity:1}
+  .adminPdfBtn:disabled{opacity:.3;cursor:default}
+  .pdf-offscreen{position:fixed;top:0;left:-10000px;width:880px;background:#fff}
+  .pdf-offscreen .gneedle,.pdf-offscreen .gfill{transition:none !important}
   .admin-modal{display:none;position:fixed;inset:0;background:rgba(20,18,16,.55);z-index:1000;
     align-items:flex-start;justify-content:center;padding:26px 16px;overflow-y:auto}
   .admin-modal-inner{background:#f5f4f0;border-radius:14px;max-width:900px;width:100%;
@@ -299,6 +308,7 @@
       <div class="header-title">Ducati Dealer Forecast Portal</div>
       <div class="header-sub">Weekly Registration Forecast</div>
     </div>
+    <button class="admin-discreet" onclick="switchTab('admin')" title="Admin">Admin</button>
     <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="adminLogout()">Sign out</button>
 
   </div>
@@ -306,7 +316,7 @@
   <div class="nav">
     <button class="nav-btn active" onclick="switchTab('dealer')">Dealer Submission</button>
     <button class="nav-btn" onclick="switchTab('performance')">My Performance</button>
-    <button class="nav-btn" onclick="switchTab('admin')">Admin Dashboard</button>
+    <a class="nav-btn nav-link" href="https://ducati-forecast.vercel.app/dashboard/" target="_blank" rel="noopener">Bike Availability</a>
   </div>
 
   <!-- DEALER SECTION -->
@@ -996,7 +1006,7 @@ function togglePw(id) {
 }
 
 function switchTab(tab) {
-  const map = { dealer:0, performance:1, admin:2 };
+  const map = { dealer:0, performance:1 };
   document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active', i===map[tab]));
   document.getElementById('tab-dealer').classList.toggle('active', tab==='dealer');
   document.getElementById('tab-performance').classList.toggle('active', tab==='performance');
@@ -1266,53 +1276,81 @@ function showPerfContent(){
   document.getElementById('perf-toolbar').style.display='flex';
 }
 
+function exportElementToPDF(el, dealerName){
+  return new Promise((resolve, reject)=>{
+    if(!el || !window.html2pdf){ reject(new Error('html2pdf unavailable')); return; }
+    const safe = (dealerName||'Dealer').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    const opt = {
+      margin: 8,
+      filename: safe+'_Performance.pdf',
+      image: {type:'png', quality:1},
+      html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true},
+      jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
+      pagebreak: {mode:['css','legacy']}
+    };
+    const restores = [];
+    function finish(){ restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); }); }
+    // html2canvas can't rasterise inline <svg>; swap each gauge for a PNG snapshot first.
+    const svgs = Array.from(el.querySelectorAll('svg'));
+    Promise.all(svgs.map(svg => new Promise(res => {
+      const rect = svg.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
+      const clone = svg.cloneNode(true);
+      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      clone.setAttribute('width', w); clone.setAttribute('height', h);
+      const data = new XMLSerializer().serializeToString(clone);
+      const uri = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+      const img = new Image();
+      img.onload = () => {
+        const sc = 2, c = document.createElement('canvas');
+        c.width = w*sc; c.height = h*sc;
+        c.getContext('2d').drawImage(img, 0, 0, w*sc, h*sc);
+        const png = document.createElement('img');
+        png.src = c.toDataURL('image/png');
+        const cs = getComputedStyle(svg);
+        png.style.width = w+'px'; png.style.height = h+'px'; png.style.display='block'; png.style.margin = cs.margin;
+        svg.parentNode.replaceChild(png, svg);
+        restores.push({svg, png});
+        res();
+      };
+      img.onerror = () => res();
+      img.src = uri;
+    }))).then(() => html2pdf().set(opt).from(el).save().then(()=>{ finish(); resolve(); }).catch(err=>{ finish(); reject(err); }))
+        .catch(err=>{ finish(); reject(err); });
+  });
+}
+
 function downloadPerfPDF(){
   const el = document.getElementById('perf-content');
-  if(!el || !window.html2pdf){ return; }
   const btn = document.getElementById('perfPdfBtn');
   const label = btn ? btn.textContent : '';
   if(btn){ btn.disabled=true; btn.textContent='Preparing…'; }
-  const safe = (currentDealer||'Dealer').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
-  const opt = {
-    margin: 8,
-    filename: safe+'_Performance.pdf',
-    image: {type:'png', quality:1},
-    html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true},
-    jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
-    pagebreak: {mode:['css','legacy']}
-  };
-  const restores = [];
-  function finish(){
-    restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); });
-    if(btn){ btn.disabled=false; btn.textContent=label; }
-  }
-  // html2canvas can't rasterise inline <svg>; swap each gauge for a PNG snapshot first.
-  const svgs = Array.from(el.querySelectorAll('svg'));
-  Promise.all(svgs.map(svg => new Promise(resolve => {
-    const rect = svg.getBoundingClientRect();
-    const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
-    const clone = svg.cloneNode(true);
-    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-    clone.setAttribute('width', w); clone.setAttribute('height', h);
-    const data = new XMLSerializer().serializeToString(clone);
-    const uri = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
-    const img = new Image();
-    img.onload = () => {
-      const sc = 2, c = document.createElement('canvas');
-      c.width = w*sc; c.height = h*sc;
-      c.getContext('2d').drawImage(img, 0, 0, w*sc, h*sc);
-      const png = document.createElement('img');
-      png.src = c.toDataURL('image/png');
-      const cs = getComputedStyle(svg);
-      png.style.width = w+'px'; png.style.height = h+'px'; png.style.display='block'; png.style.margin = cs.margin;
-      svg.parentNode.replaceChild(png, svg);
-      restores.push({svg, png});
-      resolve();
-    };
-    img.onerror = () => resolve();
-    img.src = uri;
-  }))).then(() => html2pdf().set(opt).from(el).save().then(finish).catch(finish))
-      .catch(finish);
+  exportElementToPDF(el, currentDealer).catch(()=>{}).then(()=>{ if(btn){ btn.disabled=false; btn.textContent=label; } });
+}
+
+// Admin: build the dealer's scorecard off-screen (no modal flash) and export it.
+function downloadAdminDealerPDF(d, btnEl){
+  if(!window.html2pdf) return;
+  if(btnEl){ btnEl.disabled = true; btnEl.style.opacity = '0.35'; }
+  const container = document.createElement('div');
+  container.className = 'pdf-offscreen';
+  document.body.appendChild(container);
+  container.innerHTML = renderPerf(d);
+  // Snap gauges straight to their final state — no need to wait out the transition off-screen.
+  container.querySelectorAll('.gneedle').forEach(g=>{ g.style.transition='none'; g.style.transform='rotate(0deg)'; });
+  container.querySelectorAll('.gfill').forEach(p=>{ p.style.transition='none'; p.style.strokeDashoffset='0'; });
+  container.querySelectorAll('.gaugenum').forEach(el=>{
+    const t = el.getAttribute('data-target');
+    if(t!==null && t!=='') el.textContent = t + (el.getAttribute('data-suffix')||'');
+  });
+  container.querySelectorAll('.pctnum').forEach(el=>{
+    const t = el.getAttribute('data-target');
+    if(t!==null && t!=='') el.textContent = t + '%';
+  });
+  exportElementToPDF(container, d.dealer).catch(()=>{}).then(()=>{
+    document.body.removeChild(container);
+    if(btnEl){ btnEl.disabled = false; btnEl.style.opacity = ''; }
+  });
 }
 
 function initPerfPicker(){
@@ -1392,11 +1430,18 @@ function renderAdminPerformanceOverview(payload){
   const cell = (p) => p==null ? '<td class="n">—</td>'
     : `<td class="n" style="color:${tone(p)};font-weight:700;">${Math.round(p*100)}%</td>`;
 
+  const PDF_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path d="M6 2h8l4 4v16H6z" fill="#eee" stroke="#999" stroke-width="1"/>
+      <path d="M14 2v4h4" fill="none" stroke="#999" stroke-width="1"/>
+      <rect x="5" y="13" width="14" height="7" rx="1.4" fill="#CC0000"/>
+      <text x="12" y="18.4" font-family="Arial,sans-serif" font-size="6.3" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>
+    </svg>`;
+
   const rows = dealers.map((d,i)=>{
     const soInQ = catPct(d,'sellout'), soCoP = catCoPct(d,'sellout');
     return `<tr>
       <td>${d.rank?('P'+d.rank):'—'}</td>
-      <td><button type="button" class="adminDealerLink" data-idx="${i}">${d.dealer}</button></td>
+      <td><button type="button" class="adminDealerLink" data-idx="${i}">${d.dealer}</button><button type="button" class="adminPdfBtn" data-idx="${i}" title="Download ${d.dealer} as PDF">${PDF_ICON}</button></td>
       ${cell(soInQ)}${cell(soCoP)}
       ${cell(catPct(d,'apparel'))}${cell(catPct(d,'accessories'))}${cell(catPct(d,'cclass'))}
       ${cell(simplePct(d,'pirelli'))}${cell(simplePct(d,'shell'))}
@@ -1404,7 +1449,7 @@ function renderAdminPerformanceOverview(payload){
   }).join('');
 
   mount.innerHTML = statsHtml + `
-    <div style="font-size:11px;color:#999;margin:14px 0 6px;">Updated <b style="color:#444;">${payload.updated||'—'}</b> · Quarter ${payload.quarter||'—'} · bike/apparel/accessories/C-Class % shown in-quarter unless marked · click a dealer to view their full scorecard</div>
+    <div style="font-size:11px;color:#999;margin:14px 0 6px;">Updated <b style="color:#444;">${payload.updated||'—'}</b> · Quarter ${payload.quarter||'—'} · bike/apparel/accessories/C-Class % shown in-quarter unless marked · click a dealer to view their full scorecard, or the PDF icon to download it</div>
     <div class="admintablewrap"><table class="adminperftable">
       <thead><tr><th>Pos</th><th>Dealer</th><th class="n">Bikes (Q)</th><th class="n">Bikes (CO)</th>
         <th class="n">Apparel</th><th class="n">Accessories</th><th class="n">C-Class</th><th class="n">Pirelli</th><th class="n">Shell</th></tr></thead>
@@ -1413,6 +1458,9 @@ function renderAdminPerformanceOverview(payload){
 
   mount.querySelectorAll('.adminDealerLink').forEach(btn=>{
     btn.addEventListener('click', ()=> showAdminDealerDetail(dealers[+btn.dataset.idx]));
+  });
+  mount.querySelectorAll('.adminPdfBtn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); downloadAdminDealerPDF(dealers[+btn.dataset.idx], btn); });
   });
 }
 
