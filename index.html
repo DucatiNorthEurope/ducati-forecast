@@ -200,6 +200,7 @@
   .bar{height:7px;border-radius:99px;background:var(--surf2);margin:12px 0 10px;overflow:hidden;position:relative}
   .fg{width:88%;max-width:300px;height:auto;display:block;margin:6px auto 4px}
   .fgpair{display:flex;gap:14px;margin-top:6px}
+  .pdf-capturing .fgpair{flex-direction:column;gap:10px}
   .fgcol{flex:1;min-width:0;text-align:center}
   .fgcol .fg{width:100%;max-width:none;margin:0 auto}
   .fglabel{font-size:11px;letter-spacing:.6px;color:var(--mut);text-transform:uppercase;
@@ -269,8 +270,6 @@
   .adminPdfBtn{background:none;border:none;padding:0;margin-left:7px;cursor:pointer;vertical-align:middle;opacity:.7;line-height:0}
   .adminPdfBtn:hover{opacity:1}
   .adminPdfBtn:disabled{opacity:.3;cursor:default}
-  .pdf-offscreen{position:absolute;top:0;left:0;width:840px;background:#fff;z-index:-99999;pointer-events:none}
-  .pdf-offscreen .gneedle,.pdf-offscreen .gfill{transition:none !important}
   .admin-modal{display:none;position:fixed;inset:0;background:rgba(20,18,16,.55);z-index:1000;
     align-items:flex-start;justify-content:center;padding:26px 16px;overflow-y:auto}
   .admin-modal-inner{background:#f5f4f0;border-radius:14px;max-width:900px;width:100%;
@@ -1291,12 +1290,16 @@ function exportElementToPDF(el, dealerName){
     };
     // Pin the source element to the same width BEFORE measuring anything, so the
     // SVG->PNG snapshots and the later html2canvas capture are never out of sync.
+    // Also stack the twin gauges vertically for capture — the side-by-side layout
+    // is what kept getting clipped, and a single column has no width dependency at all.
     const hadInlineWidth = el.style.width;
     el.style.width = CAPTURE_WIDTH + 'px';
+    el.classList.add('pdf-capturing');
     const restores = [];
     function finish(){
       restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); });
       el.style.width = hadInlineWidth;
+      el.classList.remove('pdf-capturing');
     }
     // html2canvas can't rasterise inline <svg>; swap each gauge for a PNG snapshot first.
     const svgs = Array.from(el.querySelectorAll('svg'));
@@ -1336,28 +1339,26 @@ function downloadPerfPDF(){
   exportElementToPDF(el, currentDealer).catch(()=>{}).then(()=>{ if(btn){ btn.disabled=false; btn.textContent=label; } });
 }
 
-// Admin: build the dealer's scorecard off-screen (no modal flash) and export it.
+// Admin: reuse the same visible modal used for "view scorecard" — proven to
+// capture correctly, unlike a hidden off-screen clone — and export that.
 function downloadAdminDealerPDF(d, btnEl){
   if(!window.html2pdf) return;
   if(btnEl){ btnEl.disabled = true; btnEl.style.opacity = '0.35'; }
-  const container = document.createElement('div');
-  container.className = 'pdf-offscreen';
-  document.body.appendChild(container);
-  container.innerHTML = renderPerf(d);
-  // Snap gauges straight to their final state — no need to wait out the transition off-screen.
-  container.querySelectorAll('.gneedle').forEach(g=>{ g.style.transition='none'; g.style.transform='rotate(0deg)'; });
-  container.querySelectorAll('.gfill').forEach(p=>{ p.style.transition='none'; p.style.strokeDashoffset='0'; });
-  container.querySelectorAll('.gaugenum').forEach(el=>{
+  showAdminDealerDetail(d);
+  const body = document.getElementById('adminDealerModalBody');
+  // Skip the fill-in animation for capture purposes — snap straight to the final state.
+  body.querySelectorAll('.gneedle').forEach(g=>{ g.style.transition='none'; g.style.transform='rotate(0deg)'; });
+  body.querySelectorAll('.gfill').forEach(p=>{ p.style.transition='none'; p.style.strokeDashoffset='0'; });
+  body.querySelectorAll('.gaugenum').forEach(el=>{
     const t = el.getAttribute('data-target');
     if(t!==null && t!=='') el.textContent = t + (el.getAttribute('data-suffix')||'');
   });
-  container.querySelectorAll('.pctnum').forEach(el=>{
+  body.querySelectorAll('.pctnum').forEach(el=>{
     const t = el.getAttribute('data-target');
     if(t!==null && t!=='') el.textContent = t + '%';
   });
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    exportElementToPDF(container, d.dealer).catch(()=>{}).then(()=>{
-      document.body.removeChild(container);
+    exportElementToPDF(body, d.dealer).catch(()=>{}).then(()=>{
       if(btnEl){ btnEl.disabled = false; btnEl.style.opacity = ''; }
     });
   }));
