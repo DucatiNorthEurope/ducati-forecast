@@ -1279,30 +1279,25 @@ function exportElementToPDF(el, dealerName){
   return new Promise((resolve, reject)=>{
     if(!el || !window.html2pdf){ reject(new Error('html2pdf unavailable')); return; }
     const safe = (dealerName||'Dealer').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
-    const CAPTURE_WIDTH = 840; // fixed width — keeps layout (esp. twin gauges) identical regardless of the viewer's own window size
     const opt = {
       margin: 8,
       filename: safe+'_Performance.pdf',
       image: {type:'png', quality:1},
-      html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true, windowWidth: CAPTURE_WIDTH},
+      html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true},
       jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
       pagebreak: {mode:'css'}
     };
-    // Pin the source element to the same width BEFORE measuring anything, so the
-    // SVG->PNG snapshots and the later html2canvas capture are never out of sync.
-    // Also stack the twin gauges vertically for capture — the side-by-side layout
-    // is what kept getting clipped, and a single column has no width dependency at all.
+    // Stack the twin gauges vertically for capture — the side-by-side layout is what
+    // kept getting clipped/misplaced, and a single column has no width dependency at all,
+    // so there's no need to also force a specific pixel width for the capture.
     // overflow:hidden stops a child's top margin from "escaping" upward and being
     // captured as blank space above the visible content (a classic margin-collapse trap).
-    const hadInlineWidth = el.style.width;
     const hadOverflow = el.style.overflow;
-    el.style.width = CAPTURE_WIDTH + 'px';
     el.style.overflow = 'hidden';
     el.classList.add('pdf-capturing');
     const restores = [];
     function finish(){
       restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); });
-      el.style.width = hadInlineWidth;
       el.style.overflow = hadOverflow;
       el.classList.remove('pdf-capturing');
     }
