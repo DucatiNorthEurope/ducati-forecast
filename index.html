@@ -1286,24 +1286,30 @@ function exportElementToPDF(el, dealerName){
       image: {type:'png', quality:1},
       html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true, windowWidth: CAPTURE_WIDTH, width: CAPTURE_WIDTH},
       jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
-      pagebreak: {mode:['css','legacy']}
+      pagebreak: {mode:'css'}
     };
     // Pin the source element to the same width BEFORE measuring anything, so the
     // SVG->PNG snapshots and the later html2canvas capture are never out of sync.
     // Also stack the twin gauges vertically for capture — the side-by-side layout
     // is what kept getting clipped, and a single column has no width dependency at all.
+    // overflow:hidden stops a child's top margin from "escaping" upward and being
+    // captured as blank space above the visible content (a classic margin-collapse trap).
     const hadInlineWidth = el.style.width;
+    const hadOverflow = el.style.overflow;
     el.style.width = CAPTURE_WIDTH + 'px';
+    el.style.overflow = 'hidden';
     el.classList.add('pdf-capturing');
     const restores = [];
     function finish(){
       restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); });
       el.style.width = hadInlineWidth;
+      el.style.overflow = hadOverflow;
       el.classList.remove('pdf-capturing');
     }
+    const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     // html2canvas can't rasterise inline <svg>; swap each gauge for a PNG snapshot first.
     const svgs = Array.from(el.querySelectorAll('svg'));
-    Promise.all(svgs.map(svg => new Promise(res => {
+    ready.then(() => Promise.all(svgs.map(svg => new Promise(res => {
       const rect = svg.getBoundingClientRect();
       const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
       const clone = svg.cloneNode(true);
@@ -1326,7 +1332,7 @@ function exportElementToPDF(el, dealerName){
       };
       img.onerror = () => res();
       img.src = uri;
-    }))).then(() => html2pdf().set(opt).from(el).save().then(()=>{ finish(); resolve(); }).catch(err=>{ finish(); reject(err); }))
+    })))).then(() => html2pdf().set(opt).from(el).save().then(()=>{ finish(); resolve(); }).catch(err=>{ finish(); reject(err); }))
         .catch(err=>{ finish(); reject(err); });
   });
 }
@@ -1345,7 +1351,10 @@ function downloadAdminDealerPDF(d, btnEl){
   if(!window.html2pdf) return;
   if(btnEl){ btnEl.disabled = true; btnEl.style.opacity = '0.35'; }
   showAdminDealerDetail(d);
+  window.scrollTo(0, 0);
+  const modal = document.getElementById('adminDealerModal');
   const body = document.getElementById('adminDealerModalBody');
+  modal.scrollTop = 0;
   // Skip the fill-in animation for capture purposes — snap straight to the final state.
   body.querySelectorAll('.gneedle').forEach(g=>{ g.style.transition='none'; g.style.transform='rotate(0deg)'; });
   body.querySelectorAll('.gfill').forEach(p=>{ p.style.transition='none'; p.style.strokeDashoffset='0'; });
@@ -1358,6 +1367,7 @@ function downloadAdminDealerPDF(d, btnEl){
     if(t!==null && t!=='') el.textContent = t + '%';
   });
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    modal.scrollTop = 0;
     exportElementToPDF(body, d.dealer).catch(()=>{}).then(()=>{
       if(btnEl){ btnEl.disabled = false; btnEl.style.opacity = ''; }
     });
@@ -1480,6 +1490,7 @@ function showAdminDealerDetail(d){
   const body=document.getElementById('adminDealerModalBody');
   body.innerHTML = renderPerf(d);
   modal.style.display='flex';
+  modal.scrollTop = 0; // a previous dealer's scroll position must not carry over
   animateGauges(body);
 }
 function closeAdminDealerDetail(){
