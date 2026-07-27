@@ -1280,7 +1280,7 @@ function exportElementToPDF(el, dealerName){
     if(!el || !window.html2pdf){ reject(new Error('html2pdf unavailable')); return; }
     const safe = (dealerName||'Dealer').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
     const opt = {
-      margin: 8,
+      margin: 14,
       filename: safe+'_Performance.pdf',
       image: {type:'png', quality:1},
       html2canvas: {scale:2, backgroundColor:'#ffffff', useCORS:true},
