@@ -1290,15 +1290,10 @@ function exportElementToPDF(el, dealerName){
     // Stack the twin gauges vertically for capture — the side-by-side layout is what
     // kept getting clipped/misplaced, and a single column has no width dependency at all,
     // so there's no need to also force a specific pixel width for the capture.
-    // overflow:hidden stops a child's top margin from "escaping" upward and being
-    // captured as blank space above the visible content (a classic margin-collapse trap).
-    const hadOverflow = el.style.overflow;
-    el.style.overflow = 'hidden';
     el.classList.add('pdf-capturing');
     const restores = [];
     function finish(){
       restores.forEach(r=>{ if(r.png.parentNode) r.png.parentNode.replaceChild(r.svg, r.png); });
-      el.style.overflow = hadOverflow;
       el.classList.remove('pdf-capturing');
     }
     const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
