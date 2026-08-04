@@ -1221,7 +1221,7 @@ function renderPerf(d){
     <div class="shead"><h3>Quality bonus</h3><div class="rule"></div></div>
     <div class="qgrid two">
       <div class="qcard"><div class="qt">Standards</div>
-        ${flag('Lead Management', d.lm_q!=null ? (d.lm_q>=0.85?'Yes':'No') : null)}
+        ${flag('Lead Management'+(d.lm_q!=null?' ('+Math.round(d.lm_q*100)+'%)':''), d.lm_q!=null ? (d.lm_q>=0.85?'Yes':'No') : null)}
         ${flag('Business Management', ql.bm)}
         ${flag('Top Communications', ql.topcom)}
         ${flag('Stock Management', ql.stockman)}
