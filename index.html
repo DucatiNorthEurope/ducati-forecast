@@ -176,6 +176,13 @@
   .qtag{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--rosso-bright);
     border:1px solid rgba(255,42,42,.4);border-radius:8px;padding:7px 13px;letter-spacing:1px;
     background:rgba(196,0,0,.08)}
+  .qtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .qtab{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.5px;
+    color:var(--mut);background:var(--surf2);border:1px solid var(--line);border-radius:8px;
+    padding:8px 14px;cursor:pointer;transition:all .15s}
+  .qtab:hover{color:var(--ink);border-color:var(--rosso-bright)}
+  .qtab.active{color:#fff;background:var(--rosso);border-color:var(--rosso)}
+  .qtab-live{font-weight:600;opacity:.85;font-size:11px;letter-spacing:.3px}
   .fy{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .fycell{background:var(--surf);border:1px solid var(--line);border-radius:13px;padding:14px 15px}
   .fycell .k{font-size:10.5px;letter-spacing:1.5px;color:var(--mut2);text-transform:uppercase;font-weight:600}
@@ -1243,6 +1250,38 @@ function renderPerf(d){
   </div>`;
 }
 
+// Wraps renderPerf with clickable quarter tabs when multiple quarters are
+// bundled in the data (new shape: {dealer, sap, updated, currentQuarter,
+// quarters:{label:scorecard}}). Falls back to a single, tab-less render for
+// old-shape data (a flat scorecard with no .quarters), so nothing breaks
+// before the Performance tab is repopulated in the new format.
+function renderPerfShell(mount, payload){
+  const hasQuarters = payload && payload.quarters && Object.keys(payload.quarters).length > 0;
+  if (!hasQuarters){
+    mount.innerHTML = renderPerf(payload);
+    animateGauges(mount);
+    return;
+  }
+  const labels = Object.keys(payload.quarters).sort();
+  let active = (payload.currentQuarter && payload.quarters[payload.currentQuarter]) ? payload.currentQuarter : labels[labels.length-1];
+
+  function paint(){
+    const qData = payload.quarters[active];
+    const flat = Object.assign({}, qData, {
+      dealer: payload.dealer, sap: payload.sap, updated: payload.updated, quarter: active
+    });
+    const tabsHtml = labels.length > 1
+      ? `<div class="qtabs">${labels.map(l=>`<button type="button" class="qtab${l===active?' active':''}" data-q="${l}">${l}${l===payload.currentQuarter?' <span class="qtab-live">· current</span>':''}</button>`).join('')}</div>`
+      : '';
+    mount.innerHTML = tabsHtml + renderPerf(flat);
+    animateGauges(mount);
+    mount.querySelectorAll('.qtab').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ active = btn.getAttribute('data-q'); paint(); });
+    });
+  }
+  paint();
+}
+
 async function loadPerformance(dealer, password){
   const mount=document.getElementById('perf-content');
   mount.innerHTML='<div class="empty-state">Loading your performance…</div>';
@@ -1257,8 +1296,7 @@ async function loadPerformance(dealer, password){
       if(j.error!=='nodata'){ currentPassword=''; showPerfLogin(); }
       return;
     }
-    mount.innerHTML=renderPerf(j.data);
-    animateGauges(mount);
+    renderPerfShell(mount, j.data);
   }catch(e){
     mount.innerHTML='<div class="empty-state">Could not load performance right now. Please try again.</div>';
   }
@@ -1408,7 +1446,15 @@ function achieveStats(dealers, getInQ, getCO, target){
 
 function renderAdminPerformanceOverview(payload){
   const mount=document.getElementById('adminPerfOverview');
-  const dealers=(payload.dealers||[]).slice().sort((a,b)=>(a.rank??999)-(b.rank??999) || a.dealer.localeCompare(b.dealer));
+  const raw = payload.dealers || [];
+  // Flatten each dealer to their current quarter's scorecard for the stats/table
+  // (matches previous behaviour), but keep the full multi-quarter blob (_raw) so
+  // the detail view / PDF can still offer quarter tabs.
+  const dealers = raw.map(d=>{
+    if (!d.quarters) return Object.assign({}, d, {_raw: d});
+    const cur = d.quarters[d.currentQuarter] || d.quarters[Object.keys(d.quarters).pop()] || {};
+    return Object.assign({}, cur, {dealer: d.dealer, sap: d.sap, updated: d.updated, _raw: d});
+  }).sort((a,b)=>(a.rank??999)-(b.rank??999) || a.dealer.localeCompare(b.dealer));
   if(!dealers.length){ mount.innerHTML='<div class="empty-state">No performance data has been uploaded yet.</div>'; return; }
 
   const catPct=(d,key)=>{ const c=d[key]; return c && c.q_target ? c.q_act/c.q_target : null; };
@@ -1468,20 +1514,19 @@ function renderAdminPerformanceOverview(payload){
     </table></div>`;
 
   mount.querySelectorAll('.adminDealerLink').forEach(btn=>{
-    btn.addEventListener('click', ()=> showAdminDealerDetail(dealers[+btn.dataset.idx]));
+    btn.addEventListener('click', ()=> showAdminDealerDetail(dealers[+btn.dataset.idx]._raw));
   });
   mount.querySelectorAll('.adminPdfBtn').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{ e.stopPropagation(); downloadAdminDealerPDF(dealers[+btn.dataset.idx], btn); });
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); downloadAdminDealerPDF(dealers[+btn.dataset.idx]._raw, btn); });
   });
 }
 
 function showAdminDealerDetail(d){
   const modal=document.getElementById('adminDealerModal');
   const body=document.getElementById('adminDealerModalBody');
-  body.innerHTML = renderPerf(d);
   modal.style.display='flex';
   modal.scrollTop = 0; // a previous dealer's scroll position must not carry over
-  animateGauges(body);
+  renderPerfShell(body, d);
 }
 function closeAdminDealerDetail(){
   document.getElementById('adminDealerModal').style.display='none';
