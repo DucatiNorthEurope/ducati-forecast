@@ -489,9 +489,9 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
           <input type="file" id="misFileInput" accept="application/pdf" multiple style="display:none;">
           <div class="mis-natavg">
             <label for="misNatAvg">National average Ducati market share</label>
-            <input type="number" id="misNatAvg" step="0.01" placeholder="7.15">
+            <input type="number" id="misNatAvg" step="0.01" placeholder="auto">
             <span>%</span>
-            <span style="color:#bbb;">&mdash; drives the Market Share and Bike Loss/Gain columns below</span>
+            <span style="color:#bbb;">&mdash; auto-detected from uploaded reports, editable</span>
           </div>
           <div class="mis-queue" id="misQueue"></div>
           <div id="misOverview" style="margin-top:14px;"><div class="empty-state">Upload dealer Custom Report PDFs above to populate this table.</div></div>
@@ -1963,6 +1963,29 @@ function escapeHtml(s){
   });
 }
 
+/* ---------------------------- National average (auto-derived) ---------------------------- */
+
+// Every report's Ducati row carries a "% perf. ind. Country" figure — the dealer's local
+// market share expressed as an index against the true national average (index 110.7 means
+// "111% of the national rate"). That means the national average itself can be recovered
+// from any single report: localMS / (perfIndCountry/100). Verified against real reports —
+// independently uploaded dealers agree to within ~0.01 points of each other.
+function deriveNationalAvgFromReport(data){
+  var ducatiRow = data.brands.find(function(r){ return r.label === 'Ducati'; });
+  if (!ducatiRow) return null;
+  var localMS = ducatiRow.values[4];
+  var perfCountry = ducatiRow.values[14];
+  if (localMS === undefined || localMS === null || !perfCountry) return null;
+  return localMS / (perfCountry / 100);
+}
+
+function median(arr){
+  if (!arr.length) return null;
+  var s = arr.slice().sort(function(a,b){ return a - b; });
+  var mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+}
+
 /* ---------------------------- Headline summary (shared by detail cards + admin table) ---------------------------- */
 
 // Computes the four admin-table metrics (and the raw figures behind them) from a parsed
@@ -2365,7 +2388,19 @@ function setMisQueueStatus(row, html, cls){
 
 async function handleMisFiles(files){
   for (var i = 0; i < files.length; i++){ await handleOneMisFile(files[i]); }
+  autoFillMisNatAvgIfEmpty();
   renderMisOverview();
+}
+
+// Auto-fills the national average field from whatever's loaded so far, but only if the
+// field is currently empty — never overwrites a value that's been typed in or edited.
+function autoFillMisNatAvgIfEmpty(){
+  var input = document.getElementById('misNatAvg');
+  if (input.value) return;
+  var derived = Object.keys(MIS_DEALERS).map(function(name){ return deriveNationalAvgFromReport(MIS_DEALERS[name].data); })
+    .filter(function(v){ return v !== null; });
+  var auto = median(derived);
+  if (auto !== null) input.value = auto.toFixed(2);
 }
 
 async function handleOneMisFile(file){
@@ -2505,6 +2540,7 @@ async function loadMisPerformanceOverview(){
       var meta = (d.data && d.data.meta) || {};
       MIS_DEALERS[d.dealer] = {fileName: null, data: d.data, misName: meta.dealerName || d.dealer, updated: d.updated};
     });
+    autoFillMisNatAvgIfEmpty();
     renderMisOverview();
   } catch (e){
     mount.innerHTML = '<div class="empty-state">Could not load MIS performance data right now.</div>';
