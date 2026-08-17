@@ -2313,6 +2313,27 @@ function wireAreaToggles(){
 var MIS_DEALERS = {};   // portal dealer name -> {fileName, data, misName}
 var MIS_UNMATCHED = {}; // raw MIS dealer name -> {fileName, data}, for uploads that didn't match a portal dealer
 
+// MIS "Custom Report" data is GB-only, so Tobias's Swedish/Norwegian dealers never have
+// a report to upload — they're excluded from this section entirely rather than showing
+// as permanently blank rows. This only affects the MIS section's own dealer list — the
+// portal's master DEALERS array (forecasts, Network Performance, etc.) is untouched.
+var MIS_EXCLUDED_DEALERS = [
+  "BISCAYA MOTOR RACING AB", "CLAESSONS MOTOR AB", "ITALIA BIKE CENTER AB", "BEVIKS Motorcyklar AB",
+  "BIKE TROLLHÄTTAN AB", "DSMO-Center AB", "LINGVALLS MOTOR AB", "VISBIL AB (Ducati Landskrona)",
+  "CEC i Sverige AB", "LÖVÅÅS MOTOR AS", "SIGMA MOTOR AS", "EKER PERFORMANCE AS",
+  "Team Mc Bergen AS (Ducati Beregn)",
+  "Rosso Motorcycles", "The Mansell Collection"
+];
+var MIS_DEALER_LIST = DEALERS.filter(function(d){ return MIS_EXCLUDED_DEALERS.indexOf(d) === -1; });
+
+// Explicit overrides for dealers whose MIS trading name shares no text at all with their
+// portal name (so normalization/substring matching alone can't bridge them). Matched as a
+// substring of the normalized MIS name, so legal suffixes etc. either side don't matter.
+var MIS_ALIASES = {
+  'on yer bike': 'Ducati Aylesbury',
+  'sea star': 'Ducati Norwich'
+};
+
 function misNormalize(s){
   return String(s||'').toLowerCase()
     .replace(/\(.*?\)/g,' ')
@@ -2324,9 +2345,12 @@ function misNormalize(s){
 }
 function matchPortalDealer(misName){
   var norm = misNormalize(misName);
-  var hit = DEALERS.find(function(d){ return misNormalize(d) === norm; });
+  for (var key in MIS_ALIASES){
+    if (norm.indexOf(key) !== -1) return MIS_ALIASES[key];
+  }
+  var hit = MIS_DEALER_LIST.find(function(d){ return misNormalize(d) === norm; });
   if (hit) return hit;
-  hit = DEALERS.find(function(d){
+  hit = MIS_DEALER_LIST.find(function(d){
     var dn = misNormalize(d);
     return dn.length > 3 && (norm.indexOf(dn) !== -1 || dn.indexOf(norm) !== -1);
   });
@@ -2459,7 +2483,7 @@ function renderMisOverview(){
     return;
   }
 
-  var rows = DEALERS.map(function(name){
+  var rows = MIS_DEALER_LIST.map(function(name){
     var entry = MIS_DEALERS[name];
     if (!entry){
       return '<tr><td class="mis-name-cell" data-name="'+escapeHtml(name)+'">'+escapeHtml(name)+'</td>'
@@ -2490,7 +2514,7 @@ function renderMisOverview(){
       + '. Check the dealer name in that PDF against the DEALERS list, or add an alias.</div>'
     : '';
 
-  mount.innerHTML = '<div style="font-size:11px;color:#999;margin-bottom:6px;">' + matchedCount + ' of ' + DEALERS.length + ' dealers loaded &middot; click a dealer to view their full report</div>'
+  mount.innerHTML = '<div style="font-size:11px;color:#999;margin-bottom:6px;">' + matchedCount + ' of ' + MIS_DEALER_LIST.length + ' dealers loaded &middot; click a dealer to view their full report</div>'
     + '<div class="admintablewrap"><table class="adminperftable">'
     + '<thead><tr><th>Dealer</th><th class="n">Market share</th><th class="n">Bike loss/gain</th><th class="n">Brand position</th><th class="n">Net pump in/out</th></tr></thead>'
     + '<tbody>' + rows + '</tbody></table></div>' + unmatchedNote;
