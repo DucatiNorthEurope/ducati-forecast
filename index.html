@@ -268,6 +268,9 @@
     font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:#999;border-bottom:1px solid #eee}
   table.adminperftable td{padding:7px 10px;border-bottom:1px solid #f2f2f2}
   table.adminperftable td.n{text-align:right;font-variant-numeric:tabular-nums}
+  table.adminperftable th.n{text-align:right}
+  table.adminperftable th.sortable-th{cursor:pointer;user-select:none;}
+  table.adminperftable th.sortable-th:hover{color:#666}
   table.adminperftable tbody tr:hover{background:#faf9f6}
   .adminDealerLink{font:inherit;color:#CC0000;background:none;border:none;padding:0;cursor:pointer;
     font-weight:600;text-align:left}
@@ -1505,6 +1508,7 @@ function achieveStats(dealers, getInQ, getCO, target){
 }
 
 function renderAdminPerformanceOverview(payload){
+  ADMIN_PERF_LAST_PAYLOAD = payload;
   const mount=document.getElementById('adminPerfOverview');
   const raw = payload.dealers || [];
   // Flatten each dealer to their current quarter's scorecard for the stats/table
@@ -1514,12 +1518,34 @@ function renderAdminPerformanceOverview(payload){
     if (!d.quarters) return Object.assign({}, d, {_raw: d});
     const cur = d.quarters[d.currentQuarter] || d.quarters[Object.keys(d.quarters).pop()] || {};
     return Object.assign({}, cur, {dealer: d.dealer, sap: d.sap, updated: d.updated, _raw: d});
-  }).sort((a,b)=>(a.rank??999)-(b.rank??999) || a.dealer.localeCompare(b.dealer));
+  });
   if(!dealers.length){ mount.innerHTML='<div class="empty-state">No performance data has been uploaded yet.</div>'; return; }
 
   const catPct=(d,key)=>{ const c=d[key]; return c && c.q_target ? c.q_act/c.q_target : null; };
   const catCoPct=(d,key)=>{ const c=d[key]; return c ? c.pct : null; };
   const simplePct=(d,key)=>{ const c=d[key]; return c && c.q_target ? c.q_act/c.q_target : null; };
+
+  // Sortable columns — each dealer gets a plain {key: value} row alongside the
+  // original object, so clicking a header can re-sort by any of them. 'pos' (the
+  // default) falls back to rank order same as before; every other column sorts
+  // numerically with nulls always last, regardless of direction.
+  const sortRows = dealers.map((d,i)=>({
+    pos: d.rank ?? null, dealer: d.dealer,
+    bikesq: catPct(d,'sellout'), bikesco: catCoPct(d,'sellout'),
+    apparel: catPct(d,'apparel'), accessories: catPct(d,'accessories'), cclass: catPct(d,'cclass'),
+    pirelli: simplePct(d,'pirelli'), shell: simplePct(d,'shell'),
+    _d: d, _i: i
+  }));
+  const sortKey = ADMIN_PERF_SORT.key || 'pos';
+  const dir = ADMIN_PERF_SORT.dir === 'asc' ? 1 : -1;
+  sortRows.sort((a,b)=>{
+    const av = a[sortKey], bv = b[sortKey];
+    if (av==null && bv==null) return a.dealer.localeCompare(b.dealer);
+    if (av==null) return 1;
+    if (bv==null) return -1;
+    if (sortKey==='dealer') return dir * a.dealer.localeCompare(b.dealer);
+    return dir * (av - bv);
+  });
 
   function statLine(label, inQCount, coCount, n){
     const co = coCount==null ? '' :
@@ -1554,22 +1580,26 @@ function renderAdminPerformanceOverview(payload){
       <text x="12" y="18.4" font-family="Arial,sans-serif" font-size="6.3" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>
     </svg>`;
 
-  const rows = dealers.map((d,i)=>{
-    const soInQ = catPct(d,'sellout'), soCoP = catCoPct(d,'sellout');
+  const rows = sortRows.map((row)=>{
+    const d = row._d, i = row._i;
     return `<tr>
       <td>${d.rank?('P'+d.rank):'—'}</td>
       <td><button type="button" class="adminDealerLink" data-idx="${i}">${d.dealer}</button><button type="button" class="adminPdfBtn" data-idx="${i}" title="Download ${d.dealer} as PDF">${PDF_ICON}</button></td>
-      ${cell(soInQ)}${cell(soCoP)}
-      ${cell(catPct(d,'apparel'))}${cell(catPct(d,'accessories'))}${cell(catPct(d,'cclass'))}
-      ${cell(simplePct(d,'pirelli'))}${cell(simplePct(d,'shell'))}
+      ${cell(row.bikesq)}${cell(row.bikesco)}
+      ${cell(row.apparel)}${cell(row.accessories)}${cell(row.cclass)}
+      ${cell(row.pirelli)}${cell(row.shell)}
     </tr>`;
   }).join('');
 
+  const sortArrow = (key) => ADMIN_PERF_SORT.key===key || (key==='pos' && !ADMIN_PERF_SORT.key)
+    ? (ADMIN_PERF_SORT.dir==='asc' ? ' \u25B2' : ' \u25BC') : '';
+  const sh = (key,label,numeric) => `<th class="sortable-th${numeric?' n':''}" onclick="sortAdminPerf('${key}')">${label}${sortArrow(key)}</th>`;
+
   mount.innerHTML = statsHtml + `
-    <div style="font-size:11px;color:#999;margin:14px 0 6px;">Updated <b style="color:#444;">${payload.updated||'—'}</b> · Quarter ${payload.quarter||'—'} · bike/apparel/accessories/C-Class % shown in-quarter unless marked · click a dealer to view their full scorecard, or the PDF icon to download it</div>
+    <div style="font-size:11px;color:#999;margin:14px 0 6px;">Updated <b style="color:#444;">${payload.updated||'—'}</b> · Quarter ${payload.quarter||'—'} · bike/apparel/accessories/C-Class % shown in-quarter unless marked · click a dealer to view their full scorecard, or the PDF icon to download it · click a column heading to sort</div>
     <div class="admintablewrap"><table class="adminperftable">
-      <thead><tr><th>Pos</th><th>Dealer</th><th class="n">Bikes (Q)</th><th class="n">Bikes (CO)</th>
-        <th class="n">Apparel</th><th class="n">Accessories</th><th class="n">C-Class</th><th class="n">Pirelli</th><th class="n">Shell</th></tr></thead>
+      <thead><tr>${sh('pos','Pos')}${sh('dealer','Dealer')}${sh('bikesq','Bikes (Q)',1)}${sh('bikesco','Bikes (CO)',1)}
+        ${sh('apparel','Apparel',1)}${sh('accessories','Accessories',1)}${sh('cclass','C-Class',1)}${sh('pirelli','Pirelli',1)}${sh('shell','Shell',1)}</tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
 
@@ -1580,6 +1610,20 @@ function renderAdminPerformanceOverview(payload){
     btn.addEventListener('click', (e)=>{ e.stopPropagation(); downloadAdminDealerPDF(dealers[+btn.dataset.idx]._raw, btn); });
   });
 }
+var ADMIN_PERF_SORT = { key: null, dir: 'asc' };
+var ADMIN_PERF_LAST_PAYLOAD = null;
+function sortAdminPerf(key){
+  if (ADMIN_PERF_SORT.key === key) {
+    ADMIN_PERF_SORT.dir = ADMIN_PERF_SORT.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    // Text column (dealer) makes more sense starting A→Z; numeric columns start
+    // high→low, matching "rank this from best to worst" as the natural first click.
+    ADMIN_PERF_SORT.key = key;
+    ADMIN_PERF_SORT.dir = (key === 'dealer' || key === 'pos') ? 'asc' : 'desc';
+  }
+  if (ADMIN_PERF_LAST_PAYLOAD) renderAdminPerformanceOverview(ADMIN_PERF_LAST_PAYLOAD);
+}
+
 
 function showAdminDealerDetail(d){
   const modal=document.getElementById('adminDealerModal');
@@ -2483,8 +2527,27 @@ function renderMisOverview(){
     return;
   }
 
-  var rows = MIS_DEALER_LIST.map(function(name){
+  // Build one plain sortable record per dealer first, so a column click can
+  // re-sort by the actual underlying number rather than re-deriving it from HTML.
+  var sortRows = MIS_DEALER_LIST.map(function(name){
     var entry = MIS_DEALERS[name];
+    if (!entry) return { name: name, entry: null, ms: null, bl: null, br: null, np: null };
+    var s = computeSummary(entry.data, natAvg);
+    return { name: name, entry: entry, s: s, ms: s.localMS, bl: s.bikeLoss, br: s.brandRank, np: s.netPump };
+  });
+  var sortKey = MIS_SORT.key || 'name';
+  var dir = MIS_SORT.dir === 'asc' ? 1 : -1;
+  sortRows.sort(function(a, b){
+    if (sortKey === 'name') return dir * a.name.localeCompare(b.name);
+    var av = a[sortKey], bv = b[sortKey];
+    if (av == null && bv == null) return a.name.localeCompare(b.name);
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return dir * (av - bv);
+  });
+
+  var rows = sortRows.map(function(row){
+    var name = row.name, entry = row.entry;
     if (!entry){
       return '<tr><td class="mis-name-cell" data-name="'+escapeHtml(name)+'">'+escapeHtml(name)+'</td>'
         + '<td class="n"><span class="mis-value muted">&mdash;</span></td>'
@@ -2492,7 +2555,7 @@ function renderMisOverview(){
         + '<td class="n"><span class="mis-value muted">&mdash;</span></td>'
         + '<td class="n"><span class="mis-value muted">&mdash;</span></td></tr>';
     }
-    var s = computeSummary(entry.data, natAvg);
+    var s = row.s;
     var msCls = s.msDelta === null ? 'muted' : (s.msDelta >= 0 ? 'green' : 'red');
     var blCls = s.bikeLoss === null ? 'muted' : (s.bikeLoss >= 0 ? 'green' : 'red');
     var npCls = s.netPump === null ? 'muted' : (s.netPump >= 0 ? 'green' : 'red');
@@ -2514,15 +2577,33 @@ function renderMisOverview(){
       + '. Check the dealer name in that PDF against the DEALERS list, or add an alias.</div>'
     : '';
 
-  mount.innerHTML = '<div style="font-size:11px;color:#999;margin-bottom:6px;">' + matchedCount + ' of ' + MIS_DEALER_LIST.length + ' dealers loaded &middot; click a dealer to view their full report</div>'
+  var sortArrow = function(key){
+    return (MIS_SORT.key===key || (key==='name' && !MIS_SORT.key))
+      ? (MIS_SORT.dir==='asc' ? ' \u25B2' : ' \u25BC') : '';
+  };
+  var sh = function(key,label,numeric){
+    return '<th class="sortable-th'+(numeric?' n':'')+'" onclick="sortMisOverview(\''+key+'\')">'+label+sortArrow(key)+'</th>';
+  };
+
+  mount.innerHTML = '<div style="font-size:11px;color:#999;margin-bottom:6px;">' + matchedCount + ' of ' + MIS_DEALER_LIST.length + ' dealers loaded &middot; click a dealer to view their full report &middot; click a column heading to sort</div>'
     + '<div class="admintablewrap"><table class="adminperftable">'
-    + '<thead><tr><th>Dealer</th><th class="n">Market share</th><th class="n">Bike loss/gain</th><th class="n">Brand position</th><th class="n">Net pump in/out</th></tr></thead>'
+    + '<thead><tr>' + sh('name','Dealer') + sh('ms','Market share',1) + sh('bl','Bike loss/gain',1) + sh('br','Brand position',1) + sh('np','Net pump in/out',1) + '</tr></thead>'
     + '<tbody>' + rows + '</tbody></table></div>' + unmatchedNote;
 
   mount.querySelectorAll('.mis-name-cell').forEach(function(td){
     var name = td.getAttribute('data-name');
     if (MIS_DEALERS[name]) td.addEventListener('click', function(){ openMisDealerDetail(name); });
   });
+}
+var MIS_SORT = { key: null, dir: 'asc' };
+function sortMisOverview(key){
+  if (MIS_SORT.key === key) {
+    MIS_SORT.dir = MIS_SORT.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    MIS_SORT.key = key;
+    MIS_SORT.dir = key === 'name' ? 'asc' : 'desc';
+  }
+  renderMisOverview();
 }
 
 /* ---- Drill-down modal (reuses the same detail view as the standalone tools) ---- */
