@@ -883,8 +883,8 @@ async function checkAdminPw() {
       document.getElementById('admin-content').style.display = 'block';
       document.getElementById('logoutBtn').style.display = 'block';
       loadAdminData();
-      loadAdminPerformanceOverview();
-      loadMisPerformanceOverview();
+      // MIS goes second so three heavy sheet reads aren't all hitting the backend at once
+      loadAdminPerformanceOverview().then(loadMisPerformanceOverview, loadMisPerformanceOverview);
     } else {
       err.textContent = 'Incorrect password. Please try again.';
       document.getElementById('adminPwInput').value = '';
@@ -2567,9 +2567,7 @@ async function handleOneMisFile(file){
       setMisQueueStatus(row, '<span class="mis-spinner"></span>Saving&hellip;', '');
       try {
         var b64 = utf8ToBase64(JSON.stringify(data));
-        var saveRes = await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-          body: JSON.stringify({action:'saveMisPerformance', password: currentAdminPassword, dealer: portalName, blob: b64})});
-        var saveJ = await saveRes.json();
+        var saveJ = await postToScript({action:'saveMisPerformance', password: currentAdminPassword, dealer: portalName, blob: b64});
         if (saveJ.ok){
           setMisQueueStatus(row, (replaced ? 'Replaced &mdash; ' : '') + escapeHtml(portalName) + ' <span style="color:var(--good);">(saved)</span>', 'ok');
         } else {
@@ -2577,7 +2575,7 @@ async function handleOneMisFile(file){
         }
       } catch (saveErr){
         console.error(saveErr);
-        setMisQueueStatus(row, escapeHtml(portalName) + ' &mdash; parsed but not saved (offline?)', 'err');
+        setMisQueueStatus(row, escapeHtml(portalName) + ' &mdash; parsed but not saved (couldn&rsquo;t reach the server, try uploading it again)', 'err');
       }
     } else {
       MIS_UNMATCHED[misName] = {fileName: file.name, data: data};
@@ -2706,12 +2704,13 @@ function closeMisDealerDetail(){
 async function loadMisPerformanceOverview(){
   var mount = document.getElementById('misOverview');
   mount.innerHTML = '<div class="empty-state">Loading&hellip;</div>';
+  var retryBtn = ' <button type="button" onclick="loadMisPerformanceOverview()" style="margin-left:8px;padding:5px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font:inherit;font-size:12px;">Try again</button>';
   try {
-    var res = await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'adminMisPerformance', password: currentAdminPassword})});
-    var j = await res.json();
+    var j = await postToScript({action:'adminMisPerformance', password: currentAdminPassword});
     if (!j.ok){
-      mount.innerHTML = '<div class="empty-state">Could not load MIS performance data.</div>';
+      mount.innerHTML = '<div class="empty-state">' + (j.error === 'auth'
+        ? 'Your admin session has expired. Sign out and back in to load MIS data.'
+        : 'Could not load MIS performance data.' + retryBtn) + '</div>';
       return;
     }
     MIS_DEALERS = {};
@@ -2722,7 +2721,7 @@ async function loadMisPerformanceOverview(){
     autoFillMisNatAvgIfEmpty();
     renderMisOverview();
   } catch (e){
-    mount.innerHTML = '<div class="empty-state">Could not load MIS performance data right now.</div>';
+    mount.innerHTML = '<div class="empty-state">Could not load MIS performance data right now.' + retryBtn + '</div>';
   }
 }
 
