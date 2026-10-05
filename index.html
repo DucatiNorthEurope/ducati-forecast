@@ -234,6 +234,12 @@
   .flag{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;border-top:1px solid var(--line)}
   .flag:first-of-type{border-top:none}
   .flag .lbl{color:var(--mut)}
+  button.flag{width:100%;background:none;border:none;border-top:1px solid var(--line);cursor:pointer;font:inherit;text-align:left}
+  button.flag:first-of-type{border-top:none}
+  button.flag:hover .lbl{color:var(--ink)}
+  button.flag:hover .chev{color:var(--rosso-bright)}
+  .flag .chev{color:var(--mut2);font-weight:700;display:inline-block;transition:transform .12s}
+  button.flag:hover .chev{transform:translateX(2px)}
   .pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;letter-spacing:.4px}
   .pill.y{background:rgba(52,211,153,.13);color:var(--good)}
   .pill.n{background:rgba(255,77,77,.13);color:var(--bad)}
@@ -287,6 +293,11 @@
     padding:7px 13px;cursor:pointer;margin:8px 8px 0 0}
   .admin-modal-close:hover{background:#f1efea}
   .admin-modal-inner .perf{clear:both}
+  .tc-head{clear:both;padding:4px 4px 10px;border-bottom:1px solid #e8e6e0;margin-bottom:6px}
+  .tc-head h3{font-size:18px;font-weight:700;color:#222}
+  .tc-dealer{font-size:12.5px;color:#888;margin-top:3px}
+  .tc-updated{color:#aaa}
+  #topCommsModalBody .flag{padding:9px 4px}
 
 /* ===== MIS registration/sales performance (admin) ===== */
 .mis-spinner{display:inline-block;width:12px;height:12px;border:2px solid #eee;border-top-color:#CC0000;
@@ -333,6 +344,13 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <div style="font-size:14px;color:#888;">Submitting forecast...</div>
+</div>
+
+<div id="topCommsModal" class="admin-modal" style="z-index:1100;" onclick="if(event.target===this) closeTopCommsDetail()">
+  <div class="admin-modal-inner" style="max-width:520px;">
+    <button type="button" class="admin-modal-close" onclick="closeTopCommsDetail()">✕ Close</button>
+    <div id="topCommsModalBody" style="padding:4px 4px 20px;"></div>
+  </div>
 </div>
 
 <div class="app">
@@ -582,7 +600,7 @@ const DEALERS = [
 const MODELS = [
   "Multistrada V2","Multistrada V2S","Multistrada V2 Travel",
   "Multistrada V4","Multistrada V4 S","Multistrada V4 Rally","Multistrada V4 RS","Multistrada V4 Pikes Peak","Multistrada V4S GT",
-  "DesertX",
+  "DesertX","DesertX Rally",
   "Hypermotard V2","Hypermotard V2 SP","Hypermotard 698 Mono","Hypermotard 698 Mono RVE",
   "Streetfighter V2","Streetfighter V2 S","Streetfighter V4","Streetfighter V4 S","Streetfighter V4 S Corse",
   "Monster","Monster +",
@@ -670,6 +688,34 @@ function backToStep1() {
   currentPassword = '';
 }
 
+// POST to the backend with one automatic retry on failure (network hiccup,
+// HTTP error, non-JSON response, or a transient Apps Script exception) before
+// giving up. Most of the "wrong password" / "can't load data" reports turned
+// out to be a single failed attempt with no retry, not an actual problem with
+// the password or the data — this smooths over that class of blip. Throws
+// only if both attempts fail.
+async function postToScript(payload, attempt){
+  attempt = attempt || 1;
+  try {
+    const res = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error('http '+res.status);
+    const j = await res.json();
+    // A caught server-side exception (see Code.gs's outer catch) comes back as
+    // {ok:false, error:'server:...'} — a transient Sheets/quota blip, not an
+    // actual wrong password or missing data. Retry it rather than letting
+    // callers show "Incorrect password" for something that was never checked.
+    if (j && typeof j.error === 'string' && j.error.indexOf('server:') === 0) throw new Error(j.error);
+    return j;
+  } catch (e) {
+    if (attempt < 2) {
+      await new Promise(r=>setTimeout(r, 700));
+      return postToScript(payload, attempt+1);
+    }
+    throw e;
+  }
+}
+
 async function checkDealerPw() {
   const entered = document.getElementById('dealerPwInput').value.trim();
   const err = document.getElementById('dealerLoginError');
@@ -677,9 +723,7 @@ async function checkDealerPw() {
   if (!entered) { err.textContent = 'Please enter your password.'; return; }
   document.getElementById('loadingOverlay').style.display = 'flex';
   try {
-    const res = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action:'verifyDealer', dealer: currentDealer, password: entered }) });
-    const j = await res.json();
+    const j = await postToScript({ action:'verifyDealer', dealer: currentDealer, password: entered });
     document.getElementById('loadingOverlay').style.display = 'none';
     if (j.ok) {
       currentPassword = entered;
@@ -692,7 +736,7 @@ async function checkDealerPw() {
     }
   } catch (e) {
     document.getElementById('loadingOverlay').style.display = 'none';
-    err.textContent = 'Could not verify right now. Please try again.';
+    err.textContent = 'Could not verify right now — please try again in a moment.';
   }
 }
 
@@ -830,9 +874,7 @@ async function checkAdminPw() {
   if (!val) { err.textContent = 'Please enter your password.'; return; }
   document.getElementById('loadingOverlay').style.display = 'flex';
   try {
-    const res = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action:'verifyAdmin', password: val }) });
-    const j = await res.json();
+    const j = await postToScript({ action:'verifyAdmin', password: val });
     document.getElementById('loadingOverlay').style.display = 'none';
     if (j.ok) {
       adminAuthed = true;
@@ -850,7 +892,7 @@ async function checkAdminPw() {
     }
   } catch (e) {
     document.getElementById('loadingOverlay').style.display = 'none';
-    err.textContent = 'Could not verify right now. Please try again.';
+    err.textContent = 'Could not verify right now — please try again in a moment.';
   }
 }
 
@@ -1199,6 +1241,15 @@ function flag(lbl,val){
   else if(val===false||val==='No'||val==null){cls='n';txt=val==null?'—':'No';}
   return `<div class="flag"><span class="lbl">${lbl}</span><span class="pill ${cls}">${txt}</span></div>`;
 }
+// Same as flag(), but renders as a button that opens a detail panel (e.g. Top
+// Communications' per-campaign breakdown). jsClass is the hook used to wire the
+// click handler after the markup is inserted into the page.
+function flagClickable(lbl,val,jsClass){
+  let cls='n',txt='No';
+  if(val===true||val==='Yes'||val==='YES'||val==='yes'){cls='y';txt='Yes';}
+  else if(val===false||val==='No'||val==null){cls='n';txt=val==null?'—':'No';}
+  return `<button type="button" class="flag flag-click ${jsClass}"><span class="lbl">${lbl} <span class="chev">›</span></span><span class="pill ${cls}">${txt}</span></button>`;
+}
 function val(lbl,v,suffix=''){
   return `<div class="flag"><span class="lbl">${lbl}</span><span class="pill v">${v==null?'—':v+suffix}</span></div>`;
 }
@@ -1293,7 +1344,7 @@ function renderPerf(d){
       <div class="qcard"><div class="qt">Standards</div>
         ${flag('Lead Management'+(d.lm_q!=null?' ('+Math.round(d.lm_q*100)+'%)':''), d.lm_q!=null ? (d.lm_q>=0.85?'Yes':'No') : null)}
         ${flag('Business Management', ql.bm)}
-        ${flag('Top Communications', ql.topcom)}
+        ${flagClickable('Top Communications', ql.topcom, 'js-topcomm')}
         ${flag('Stock Management', ql.stockman)}
       </div>
       <div class="qcard"><div class="qt">Training</div>
@@ -1318,11 +1369,17 @@ function renderPerf(d){
 // quarters:{label:scorecard}}). Falls back to a single, tab-less render for
 // old-shape data (a flat scorecard with no .quarters), so nothing breaks
 // before the Performance tab is repopulated in the new format.
+function wireTopCommsClick(mount, dealerName, topComms){
+  const btn = mount.querySelector('.js-topcomm');
+  if (btn) btn.addEventListener('click', ()=> showTopCommsDetail(dealerName, topComms));
+}
+
 function renderPerfShell(mount, payload){
   const hasQuarters = payload && payload.quarters && Object.keys(payload.quarters).length > 0;
   if (!hasQuarters){
     mount.innerHTML = renderPerf(payload);
     animateGauges(mount);
+    wireTopCommsClick(mount, payload.dealer, payload.topComms);
     return;
   }
   const labels = Object.keys(payload.quarters).sort();
@@ -1331,13 +1388,15 @@ function renderPerfShell(mount, payload){
   function paint(){
     const qData = payload.quarters[active];
     const flat = Object.assign({}, qData, {
-      dealer: payload.dealer, sap: payload.sap, updated: payload.updated, quarter: active
+      dealer: payload.dealer, sap: payload.sap, updated: payload.updated, quarter: active,
+      topComms: payload.topComms
     });
     const tabsHtml = labels.length > 1
       ? `<div class="qtabs">${labels.map(l=>`<button type="button" class="qtab${l===active?' active':''}" data-q="${l}">${l}${l===payload.currentQuarter?' <span class="qtab-live">· current</span>':''}</button>`).join('')}</div>`
       : '';
     mount.innerHTML = tabsHtml + renderPerf(flat);
     animateGauges(mount);
+    wireTopCommsClick(mount, flat.dealer, flat.topComms);
     mount.querySelectorAll('.qtab').forEach(btn=>{
       btn.addEventListener('click', ()=>{ active = btn.getAttribute('data-q'); paint(); });
     });
@@ -1349,19 +1408,17 @@ async function loadPerformance(dealer, password){
   const mount=document.getElementById('perf-content');
   mount.innerHTML='<div class="empty-state">Loading your performance…</div>';
   try{
-    const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'performance',dealer,password})});
-    const j=await res.json();
+    const j = await postToScript({action:'performance',dealer,password});
     if(!j.ok){
       mount.innerHTML='<div class="empty-state">'+(j.error==='nodata'
         ?'No performance data is available for your dealership yet.'
         :'Could not verify access. Please sign in again.')+'</div>';
-      if(j.error!=='nodata'){ currentPassword=''; showPerfLogin(); }
+      if(j.error==='auth'){ currentPassword=''; showPerfLogin(); }  // only force re-login on an actual auth failure
       return;
     }
     renderPerfShell(mount, j.data);
   }catch(e){
-    mount.innerHTML='<div class="empty-state">Could not load performance right now. Please try again.</div>';
+    mount.innerHTML='<div class="empty-state">Could not load performance right now — please try again in a moment.</div>';
   }
 }
 
@@ -1480,13 +1537,11 @@ async function checkPerfPw(){
   if(!entered){ err.textContent='Please enter your password.'; return; }
   document.getElementById('loadingOverlay').style.display='flex';
   try{
-    const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'verifyDealer',dealer,password:entered})});
-    const j=await res.json();
+    const j = await postToScript({action:'verifyDealer',dealer,password:entered});
     document.getElementById('loadingOverlay').style.display='none';
     if(j.ok){ currentDealer=dealer; currentPassword=entered; showPerfContent(); loadPerformance(dealer,entered); }
     else { err.textContent='Incorrect password. Please try again.'; document.getElementById('perfPwInput').value=''; }
-  }catch(e){ document.getElementById('loadingOverlay').style.display='none'; err.textContent='Could not verify right now. Please try again.'; }
+  }catch(e){ document.getElementById('loadingOverlay').style.display='none'; err.textContent='Could not verify right now — please try again in a moment.'; }
 }
 
 function openPerformanceTab(){
@@ -1636,20 +1691,39 @@ function closeAdminDealerDetail(){
   document.getElementById('adminDealerModal').style.display='none';
 }
 
+function showTopCommsDetail(dealerName, topComms){
+  const modal=document.getElementById('topCommsModal');
+  const body=document.getElementById('topCommsModalBody');
+  modal.style.display='flex';
+  modal.scrollTop = 0;
+  if (!topComms || !topComms.campaigns || !topComms.campaigns.length){
+    body.innerHTML = `<div class="tc-head"><h3>Top Communications</h3><div class="tc-dealer">${dealerName||''}</div></div>
+      <div class="empty-state">No campaign breakdown has been uploaded for this dealer yet.</div>`;
+    return;
+  }
+  const done = topComms.campaigns.filter(c=>c.done).length, total = topComms.campaigns.length;
+  const rows = topComms.campaigns.map(c=>
+    `<div class="flag"><span class="lbl">${c.name}</span><span class="pill ${c.done?'y':'n'}">${c.done?'Yes':'No'}</span></div>`
+  ).join('');
+  const updatedLine = topComms.updated ? ` <span class="tc-updated">· Updated ${topComms.updated}</span>` : '';
+  body.innerHTML = `<div class="tc-head"><h3>Top Communications</h3><div class="tc-dealer">${dealerName||''} · ${done} of ${total} campaigns${updatedLine}</div></div>${rows}`;
+}
+function closeTopCommsDetail(){
+  document.getElementById('topCommsModal').style.display='none';
+}
+
 async function loadAdminPerformanceOverview(){
   const mount=document.getElementById('adminPerfOverview');
   mount.innerHTML='<div class="empty-state">Loading…</div>';
   try{
-    const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'adminAllPerformance',password:currentAdminPassword})});
-    const j=await res.json();
+    const j = await postToScript({action:'adminAllPerformance',password:currentAdminPassword});
     if(!j.ok){
       mount.innerHTML='<div class="empty-state">Could not load performance data'+(j.error==='nodata'?' — the Performance tab looks empty.':'.')+'</div>';
       return;
     }
     renderAdminPerformanceOverview(j);
   }catch(e){
-    mount.innerHTML='<div class="empty-state">Could not load performance data right now.</div>';
+    mount.innerHTML='<div class="empty-state">Could not load performance data right now — please try again in a moment.</div>';
   }
 }
 
