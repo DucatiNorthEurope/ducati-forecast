@@ -314,6 +314,143 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
 .mis-unmatched-note{font-size:11px;color:#a06400;background:#fdf1de;border:1px solid #f0d9ad;border-radius:6px;
   padding:8px 12px;margin-top:10px;}
 
+/* ===== Bike Auction (dealer tab + admin pane) ===== */
+.auc-hero{background:#14161b;border:1px solid #0a0b0e;border-radius:12px;padding:20px 22px;display:flex;
+  align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);position:relative;overflow:hidden}
+.auc-hero:after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,#7a0000 0%,#CC0000 40%,#ff5252 75%,transparent 100%)}
+.auc-eyebrow{font-size:10.5px;letter-spacing:2px;color:#8b919c;text-transform:uppercase;font-weight:600;
+  display:flex;align-items:center;gap:7px}
+.auc-live{width:8px;height:8px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 0 0 rgba(255,59,59,.6);
+  animation:aucPulse 1.6s infinite}
+@keyframes aucPulse{0%{box-shadow:0 0 0 0 rgba(255,59,59,.55)}70%{box-shadow:0 0 0 8px rgba(255,59,59,0)}100%{box-shadow:0 0 0 0 rgba(255,59,59,0)}}
+.auc-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;color:#fff;letter-spacing:.3px;line-height:1.1;margin-top:4px}
+.auc-hero-sub{font-size:12px;color:#9aa0a8;margin-top:5px;letter-spacing:.3px}
+.auc-timer{text-align:right}
+.auc-tlabel{font-size:10.5px;letter-spacing:2px;color:#8b919c;text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.auc-tdigits{display:flex;gap:6px;justify-content:flex-end}
+.auc-tcell{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
+  min-width:52px;padding:6px 6px 4px;text-align:center}
+.auc-tcell b{display:block;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;line-height:1;color:#fff;
+  font-variant-numeric:tabular-nums}
+.auc-tcell span{display:block;font-size:9px;letter-spacing:1.2px;color:#8b919c;text-transform:uppercase;margin-top:3px}
+.auc-tdigits.urgent .auc-tcell{border-color:rgba(255,82,82,.55);background:rgba(204,0,0,.18)}
+.auc-tdigits.urgent .auc-tcell b{color:#ff6b6b}
+.auc-tfoot{font-size:11.5px;color:#9aa0a8;margin-top:7px}
+.auc-tclosed{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;color:#fff}
+@media(max-width:600px){.auc-timer{text-align:left;width:100%}.auc-tdigits{justify-content:flex-start}.auc-tcell{min-width:0;flex:1}}
+
+.auc-rules{background:rgba(196,0,0,.05);border:1px solid rgba(196,0,0,.2);border-radius:10px;padding:11px 14px;
+  font-size:12.5px;color:#666;line-height:1.55;margin-bottom:12px}
+.auc-rules b{color:#222}
+.auc-mine{font-size:13px;color:#888;margin:2px 0 4px}
+.auc-mine b{color:#222}
+.auc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:640px){.auc-grid{grid-template-columns:1fr}}
+.auc-lot{background:#fff;border:1px solid #e8e6e0;border-radius:12px;padding:15px 16px;display:flex;flex-direction:column;
+  transition:border-color .15s}
+.auc-lot.has-bid{border-color:rgba(26,160,90,.45);box-shadow:inset 3px 0 0 #1aa05a}
+.auc-lot-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.auc-model{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:#222;line-height:1.15;letter-spacing:.2px}
+.auc-rrp{text-align:right;flex-shrink:0}
+.auc-rrp span{display:block;font-size:9.5px;letter-spacing:1.2px;color:#aaa;text-transform:uppercase;font-weight:600}
+.auc-rrp b{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:#444}
+.auc-specs{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.auc-specs span{font-size:11.5px;background:#f5f4f0;border:1px solid #ebe9e3;border-radius:100px;padding:2px 9px;color:#555}
+.auc-specs span.reg{font-weight:700;color:#222;background:#fff8d6;border-color:#eadf9f;letter-spacing:.5px}
+.auc-vin{font-size:11px;color:#aaa;margin-top:7px;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.auc-desc{font-size:12.5px;color:#666;line-height:1.5;margin-top:6px;flex:1}
+.auc-bidbox{border-top:1px solid #f0ede8;margin-top:12px;padding-top:11px}
+.auc-mybid{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.auc-mybid span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#1a7a40;font-weight:600}
+.auc-mybid b{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:#1a7a40}
+.auc-mybid em{font-style:normal;font-size:11.5px;color:#aaa}
+.auc-nobid{font-size:12px;color:#aaa;margin-bottom:8px}
+.auc-bidrow{display:flex;gap:8px}
+.auc-input{position:relative;flex:1}
+.auc-input span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#888;font-size:14px;pointer-events:none}
+.auc-input input{padding-left:24px !important}
+.auc-bidbtn{padding:0 16px;background:#CC0000;color:#fff;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;
+  font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
+.auc-bidbtn:hover{background:#aa0000}
+.auc-withdraw{background:none;border:none;color:#aaa;font-size:12px;cursor:pointer;text-decoration:underline;
+  margin-top:7px;padding:0;font-family:inherit}
+.auc-withdraw:hover{color:#CC0000}
+.auc-locked{font-size:12.5px;color:#888;background:#f9f8f5;border-radius:6px;padding:8px 10px}
+.auc-toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:#1a7a40;color:#fff;font-size:13.5px;font-weight:500;padding:11px 18px;border-radius:9px;
+  box-shadow:0 8px 30px rgba(0,0,0,.2);transition:all .25s;z-index:1001;max-width:calc(100% - 32px)}
+.auc-toast.show{opacity:1;transform:translate(-50%,0)}
+.auc-toast.err{background:#b91c1c}
+.auc-empty{text-align:center;padding:56px 24px;color:#888;font-size:14px;line-height:1.6}
+.auc-empty b{display:block;font-family:'Rajdhani',sans-serif;font-size:20px;color:#222;margin-bottom:6px}
+
+/* admin */
+.admin-subnav{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid #e8e6e0}
+.admin-subtab{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  color:#888;background:none;border:none;border-bottom:2px solid transparent;padding:9px 14px;cursor:pointer;margin-bottom:-1px}
+.admin-subtab.active{color:#CC0000;border-bottom-color:#CC0000}
+.admin-subtab:hover:not(.active){color:#333}
+.auc-adm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.auc-adm-grid .full{grid-column:1/-1}
+@media(max-width:600px){.auc-adm-grid{grid-template-columns:1fr}}
+.auc-adm-grid textarea{width:100%;min-height:62px;padding:8px 10px;font-size:13.5px;border:1px solid #ddd;border-radius:6px;
+  font-family:inherit;resize:vertical;color:#222}
+.auc-adm-grid textarea:focus{outline:none;border-color:#CC0000;box-shadow:0 0 0 3px rgba(204,0,0,.1)}
+.auc-adm-grid input[type="datetime-local"]{width:100%;padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:6px;font-family:inherit;color:#222}
+.auc-adm-hint{font-size:11.5px;color:#aaa;margin-top:4px}
+.auc-btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.auc-btn{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid #ddd;
+  background:#fff;color:#444}
+.auc-btn:hover:not(:disabled){border-color:#CC0000;color:#CC0000}
+.auc-btn.primary{background:#CC0000;border-color:#CC0000;color:#fff}
+.auc-btn.primary:hover:not(:disabled){background:#aa0000;color:#fff}
+.auc-btn:disabled{opacity:.45;cursor:default}
+.auc-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:100px;
+  border:1px solid #e0ded8;background:#f9f8f5;color:#888}
+.auc-chip.open{background:#edfaf3;border-color:#6fcf97;color:#1a7a40}
+.auc-chip.scheduled{background:#fff8e6;border-color:#f0d9ad;color:#a06400}
+.auc-chip.closed{background:#fef2f2;border-color:#fca5a5;color:#CC0000}
+.auc-dirty{font-size:12px;color:#a06400;display:none}
+.auc-dirty.show{display:inline}
+table.adminperftable td input.auc-cell{width:84px;padding:5px 7px;font-size:12.5px;text-align:right}
+table.adminperftable td.wrap{white-space:normal;min-width:150px}
+.auc-small{font-size:11px;color:#aaa}
+.auc-x{background:none;border:1px solid #ddd;border-radius:5px;color:#aaa;cursor:pointer;padding:2px 7px;font-size:12px}
+.auc-x:hover{border-color:#CC0000;color:#CC0000}
+.auc-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.auc-pill.met{background:rgba(26,160,90,.12);color:#1a7a40}
+.auc-pill.below{background:#fdf1de;color:#a06400}
+.auc-pill.none{background:#f3f4f6;color:#888}
+tr.auc-res-row{cursor:pointer}
+tr.auc-res-detail td{background:#faf9f6;padding:8px 14px 12px}
+.auc-rank{display:grid;grid-template-columns:28px 1fr auto auto;gap:4px 12px;font-size:12.5px;align-items:baseline}
+.auc-rank .r{color:#aaa;font-weight:600}
+.auc-rank .a{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.auc-rank .t{color:#aaa;font-size:11.5px}
+.auc-caret{display:inline-block;color:#bbb;width:12px;transition:transform .15s}
+tr.open .auc-caret{transform:rotate(90deg)}
+
+.auc-rrp .auc-res-lbl{margin-top:5px}
+.auc-rrp b.auc-res-val{color:#CC0000}
+.auc-resflag{font-style:normal;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+.auc-resflag.met{background:rgba(26,160,90,.12);color:#1a7a40}
+.auc-resflag.below{background:#fdf1de;color:#a06400}
+.auc-linkbtn{background:none;border:none;padding:0;font:inherit;font-size:10px;color:#CC0000;cursor:pointer;text-decoration:underline;text-transform:none;letter-spacing:0}
+.auc-switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#888;text-transform:none;letter-spacing:0;margin:0;font-weight:500}
+.auc-switch input{width:auto;accent-color:#CC0000;margin:0}
+.auc-switch input:checked + span{color:#CC0000;font-weight:600}
+
+.auc-high{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;background:#f9f8f5;border:1px solid #ebe9e3;border-radius:8px;
+  padding:7px 10px;margin-bottom:9px}
+.auc-high span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#888;font-weight:600}
+.auc-high b{font-family:'Rajdhani',sans-serif;font-size:19px;font-weight:700;color:#222}
+
+.auc-softlive{color:#ffb4b4;font-weight:600}
+
+a.auc-notelink{color:#CC0000;font-weight:600;text-decoration:underline;word-break:break-all}
+
 </style>
 </head>
 <body>
@@ -348,8 +485,9 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
   </div>
 
   <div class="nav">
-    <button class="nav-btn active" onclick="switchTab('dealer')">Dealer Submission</button>
-    <button class="nav-btn" onclick="switchTab('performance')">My Performance</button>
+    <button class="nav-btn active" data-tab="dealer" onclick="switchTab('dealer')">Dealer Submission</button>
+    <button class="nav-btn" data-tab="performance" onclick="switchTab('performance')">My Performance</button>
+    <button class="nav-btn" data-tab="auction" onclick="switchTab('auction')">Bike Auction</button>
     <a class="nav-btn nav-link" href="https://ducati-forecast.vercel.app/dashboard/" target="_blank" rel="noopener">Bike Availability</a>
   </div>
 
@@ -451,6 +589,27 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
     <div id="perf-content" class="content" style="display:none;"></div>
   </div>
 
+  <!-- BIKE AUCTION SECTION -->
+  <div id="tab-auction" class="section">
+    <div id="auc-login" class="login-overlay">
+      <div class="login-box">
+        <div class="lock-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#CC0000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5l6 6M12 6l6 6M3 21l8-8M9.5 8.5l6 6M8 10l-1.5-1.5a1.4 1.4 0 0 1 0-2l3-3a1.4 1.4 0 0 1 2 0L13 5M19 11l1.5 1.5a1.4 1.4 0 0 1 0 2l-3 3a1.4 1.4 0 0 1-2 0L14 16"/><path d="M2 22h9"/></svg></div>
+        <h3>Bike Auction</h3>
+        <p>Sign in with your dealership password to view the bikes and place sealed bids.</p>
+        <select id="aucDealerPicker" style="margin-bottom:10px;"><option value="">Select dealership</option></select>
+        <div class="pw-wrap">
+          <input type="password" id="aucPwInput" placeholder="Enter your password" onkeydown="if(event.key==='Enter')checkAuctionPw()">
+          <button class="pw-toggle" onclick="togglePw('aucPwInput')">👁</button>
+        </div>
+        <div class="pw-hint">Your password is your league table code name.</div>
+        <div class="login-error" id="aucLoginError"></div>
+        <button class="login-btn" onclick="checkAuctionPw()">View the auction</button>
+      </div>
+    </div>
+    <div id="auc-content" class="content" style="display:none;"></div>
+    <div id="aucToast" class="auc-toast" role="status" aria-live="polite"></div>
+  </div>
+
   <!-- ADMIN SECTION -->
   <div id="tab-admin" class="section">
     <div id="admin-login" class="login-overlay">
@@ -468,6 +627,11 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
     </div>
     <div id="admin-content" style="display:none;">
       <div class="content">
+        <div class="admin-subnav">
+          <button class="admin-subtab active" data-pane="main" onclick="switchAdminPane('main')">Forecasts &amp; Performance</button>
+          <button class="admin-subtab" data-pane="auction" onclick="switchAdminPane('auction')">Bike Auction</button>
+        </div>
+        <div id="adminPane-main">
         <div class="admin-grid" id="adminMetrics"></div>
         <div id="missingDealers"></div>
         <div class="card" style="padding:16px 20px;">
@@ -520,6 +684,73 @@ table.adminperftable tr.mis-unmatched td{color:#bbb;}
           </div>
           <div id="adminTable"></div>
         </div>
+        </div><!-- /adminPane-main -->
+        <div id="adminPane-auction" style="display:none;">
+        <div class="card" style="padding:16px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <span class="section-title" style="margin:0;">Auction Settings</span>
+            <span id="aucAdmStatus" class="auc-chip">Loading…</span>
+          </div>
+          <div class="auc-adm-grid">
+            <div class="full">
+              <label for="aucAdmTitle">Auction title (shown to dealers)</label>
+              <input type="text" id="aucAdmTitle" placeholder="e.g. October 2026 Press &amp; Demo Auction" maxlength="120">
+            </div>
+            <div>
+              <label for="aucAdmStart">Bidding opens</label>
+              <input type="datetime-local" id="aucAdmStart">
+              <div class="auc-adm-hint">Optional. Leave blank to open as soon as you save.</div>
+            </div>
+            <div>
+              <label for="aucAdmEnd">Bidding closes</label>
+              <input type="datetime-local" id="aucAdmEnd">
+              <div class="auc-adm-hint">Your local time. Dealers see it in UK time with a live countdown.</div>
+            </div>
+            <div>
+              <label for="aucAdmSoft">Soft close (minutes)</label>
+              <input type="number" id="aucAdmSoft" min="0" max="60" step="1" placeholder="Off">
+              <div class="auc-adm-hint">Any bid in the final X minutes pushes the close back to X minutes after that bid. Leave blank or 0 for a hard close.</div>
+            </div>
+            <div class="full">
+              <label for="aucAdmNotes">Notes for dealers (optional)</label>
+              <textarea id="aucAdmNotes" maxlength="2000" placeholder="e.g. Bids exclude VAT. Collection from Ducati UK within 14 days of the auction closing."></textarea>
+            </div>
+          </div>
+          <div class="auc-btnrow">
+            <button class="auc-btn primary" onclick="saveAuctionSettings(false)">Save settings</button>
+            <button class="auc-btn" onclick="saveAuctionSettings(true)">Close auction now</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+            <span class="section-title" style="margin:0;">Bikes &amp; Reserves</span>
+            <span class="auc-dirty" id="aucAdmDirty">Unsaved changes</span>
+            <div style="flex:1;"></div>
+            <button class="auc-btn" onclick="document.getElementById('aucAdmFile').click()">Upload spreadsheet</button>
+            <input type="file" id="aucAdmFile" accept=".xlsx,.xls,.csv" style="display:none;" onchange="aucAdmUpload(this.files[0]);this.value='';">
+          </div>
+          <div style="font-size:12px;color:#888;margin-bottom:12px;">Upload the auction sheet (Fleet, Model, Reg, VIN, Colour, Mileage, Additional Info, Estimated RRP, Hidden Reserve). Re-uploading keeps bids, RRPs, reserves and visibility settings for any bike with the same VIN. Reserves and the current highest bid are hidden from dealers unless you switch them to Shown. A shown highest bid is the amount only, never the dealer who placed it.</div>
+          <div id="aucAdmLots"><div class="empty-state">Loading…</div></div>
+          <div class="auc-btnrow">
+            <button class="auc-btn primary" id="aucAdmLotsSave" onclick="saveAuctionLots()" disabled>Save bikes &amp; reserves</button>
+            <button class="auc-btn" id="aucAdmLotsDiscard" onclick="discardAuctionLots()" disabled>Discard changes</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <span class="section-title" style="margin:0;">Bids</span>
+            <span style="font-size:12px;color:#888;">each dealer's latest bid counts · click a bike to see every bidder</span>
+            <div style="flex:1;"></div>
+            <button class="auc-btn" onclick="loadAuctionAdmin()">↻ Refresh</button>
+            <button class="export-btn" onclick="exportAuctionResultsCsv()">⬇ Results CSV</button>
+            <button class="export-btn" onclick="exportAuctionBidsCsv()">⬇ All bids CSV</button>
+          </div>
+          <div class="admin-grid" id="aucAdmMetrics"></div>
+          <div id="aucAdmResults"><div class="empty-state">Loading…</div></div>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -865,6 +1096,7 @@ function adminLogout() {
   currentAdminPassword = '';
   document.getElementById('adminPerfOverview').innerHTML = '';
   resetMisAdmin();
+  resetAuctionAdmin();
 }
 
 async function loadAdminData() {
@@ -1074,12 +1306,12 @@ function togglePw(id) {
 }
 
 function switchTab(tab) {
-  const map = { dealer:0, performance:1 };
-  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active', i===map[tab]));
-  document.getElementById('tab-dealer').classList.toggle('active', tab==='dealer');
-  document.getElementById('tab-performance').classList.toggle('active', tab==='performance');
-  document.getElementById('tab-admin').classList.toggle('active', tab==='admin');
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  ['dealer','performance','auction','admin'].forEach(t=>{
+    const el=document.getElementById('tab-'+t); if (el) el.classList.toggle('active', t===tab);
+  });
   if (tab==='performance') openPerformanceTab();
+  if (tab==='auction') openAuctionTab();
 }
 
 
@@ -2679,6 +2911,605 @@ function resetMisAdmin(){
   misQueue.innerHTML = '';
   document.getElementById('misOverview').innerHTML = '<div class="empty-state">Upload dealer Custom Report PDFs above to populate this table.</div>';
 }
+</script>
+<script>
+// ===== Bike Auction =========================================================
+// Dealer tab: sealed bids, one live bid per dealer per bike (latest counts).
+// Admin pane: settings, bikes + hidden reserves, results, CSV export.
+// Every rule that matters (open/closed, auth, reserve secrecy) is enforced in
+// Apps Script; the browser only mirrors it for a smooth UI.
+const AUC = { data:null, offset:0, timer:null, lastStatus:null, busy:false, toastT:null };
+const AUC_ADMIN = { data:null, lots:[], dirty:false, offset:0, open:{}, loaded:false, settingsFilled:false,
+                    timer:null, lastStatus:null, ticks:0 };
+
+function aucEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function aucMoney(n){ return (n==null||n===''||isNaN(n)) ? '-' : '£'+Math.round(Number(n)).toLocaleString('en-GB'); }
+function aucNumOrNull(v){ if(v===''||v==null) return null; const n=Number(String(v).replace(/[£,\s]/g,'')); return isFinite(n)?Math.round(n):null; }
+function aucMileage(m){
+  const s=String(m==null?'':m).trim(); if(!s) return '';
+  const n=Number(s.replace(/,/g,''));
+  if(!isNaN(n)) return n===0 ? '0 miles' : n.toLocaleString('en-GB')+' miles';
+  return s.replace(/^(\d+)\s*hrs?$/i,'$1 hrs');
+}
+function aucRegLabel(r){ const s=String(r||'').trim(); return (!s||/^n\/?a$/i.test(s))?'Unregistered':s; }
+function aucUkTime(ms, withDay){
+  const o={timeZone:'Europe/London', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'};
+  if(withDay) o.weekday='short';
+  return new Date(ms).toLocaleString('en-GB',o);
+}
+function aucStatusAt(s, now){
+  if(!s||!s.endAt) return 'unset';
+  if(s.startAt && now < s.startAt) return 'scheduled';
+  if(now >= s.endAt) return 'closed';
+  return 'open';
+}
+function aucSplit(ms){ const t=Math.floor(Math.max(0,ms)/1000); return {d:Math.floor(t/86400), h:Math.floor(t%86400/3600), m:Math.floor(t%3600/60), s:t%60}; }
+function aucPost(body){
+  return fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})
+    .catch(()=>{ throw new Error('the request was blocked or the connection dropped before it reached Google'); })
+    .then(r=>r.text().then(t=>{
+      try { return JSON.parse(t); }
+      catch(e){ throw new Error('Google sent back an unexpected reply (HTTP '+r.status+')'); }
+    }));
+}
+// UTF-8 safe base64, so free text (e.g. links in the dealer notes) isn't sent as plain text
+function aucB64(s){ return btoa(unescape(encodeURIComponent(String(s||'')))); }
+// Escaped notes -> clickable links, labelled by site so long URLs don't swamp the box
+function aucLinkify(escaped){
+  return escaped.replace(/https?:\/\/[^\s<]+/g, u=>{
+    const host=(u.match(/^https?:\/\/([^\/?#]+)/)||[])[1]||'link';
+    return `<a href="${u}" target="_blank" rel="noopener" class="auc-notelink">${host.replace(/^www\./,'')} link ↗</a>`;
+  });
+}
+function aucOverlay(on, text){
+  const ov=document.getElementById('loadingOverlay'); const lbl=ov.querySelector('div:last-child');
+  if(on){ if(ov.dataset.prev==null) ov.dataset.prev=lbl.textContent; lbl.textContent=text||'Loading…'; ov.style.display='flex'; }
+  else { ov.style.display='none'; if(ov.dataset.prev!=null){ lbl.textContent=ov.dataset.prev; delete ov.dataset.prev; } }
+}
+function aucToast(msg, isErr){
+  const t=document.getElementById('aucToast'); if(!t) return;
+  t.textContent=msg; t.className='auc-toast show'+(isErr?' err':'');
+  clearTimeout(AUC.toastT); AUC.toastT=setTimeout(()=>{ t.className='auc-toast'+(isErr?' err':''); }, 5500);
+}
+
+// ── Dealer: login ───────────────────────────────────────────────────────────
+function initAuctionPicker(){
+  const sel=document.getElementById('aucDealerPicker');
+  DEALERS.forEach(name=>{ const o=document.createElement('option'); o.value=name; o.textContent=name; sel.appendChild(o); });
+}
+function showAuctionLogin(){
+  document.getElementById('auc-login').style.display='flex';
+  document.getElementById('auc-content').style.display='none';
+  if(currentDealer) document.getElementById('aucDealerPicker').value=currentDealer;
+}
+function showAuctionContent(){
+  document.getElementById('auc-login').style.display='none';
+  document.getElementById('auc-content').style.display='block';
+}
+function openAuctionTab(){
+  if(currentDealer && currentPassword){ showAuctionContent(); loadAuction(); }
+  else showAuctionLogin();
+}
+async function checkAuctionPw(){
+  const dealer=document.getElementById('aucDealerPicker').value;
+  const entered=document.getElementById('aucPwInput').value.trim();
+  const err=document.getElementById('aucLoginError');
+  err.textContent='';
+  if(!dealer){ err.textContent='Please choose your dealership.'; return; }
+  if(!entered){ err.textContent='Please enter your password.'; return; }
+  aucOverlay(true,'Signing in…');
+  try{
+    const j=await aucPost({action:'verifyDealer',dealer,password:entered});
+    aucOverlay(false);
+    if(j.ok){
+      currentDealer=dealer; currentPassword=entered; AUC.data=null;
+      document.getElementById('aucPwInput').value='';
+      showAuctionContent(); loadAuction();
+    } else { err.textContent='Incorrect password. Please try again.'; document.getElementById('aucPwInput').value=''; }
+  }catch(e){ aucOverlay(false); err.textContent='Could not verify right now. Please try again.'; }
+}
+
+// ── Dealer: load + render ───────────────────────────────────────────────────
+async function loadAuction(){
+  const mount=document.getElementById('auc-content');
+  if(!AUC.data || AUC.data.dealer!==currentDealer) mount.innerHTML='<div class="empty-state">Loading the auction…</div>';
+  try{
+    const j=await aucPost({action:'auctionDealer',dealer:currentDealer,password:currentPassword});
+    if(!j.ok){
+      if(j.error==='auth'){ currentPassword=''; showAuctionLogin(); document.getElementById('aucLoginError').textContent='Please sign in again.'; return; }
+      mount.innerHTML='<div class="empty-state">Could not load the auction right now. Please try again.</div>'; return;
+    }
+    aucApply(j); renderAuction();
+  }catch(e){
+    mount.innerHTML='<div class="empty-state">Could not load the auction right now. Please try again.</div>';
+  }
+}
+function aucApply(j){ j.dealer=currentDealer; AUC.data=j; AUC.offset=(j.serverNow||Date.now())-Date.now(); }
+
+function aucTimerHtml(s, now, st){
+  if(st==='closed') return `<div class="auc-tlabel">Auction closed</div><div class="auc-tclosed">Bidding has ended</div>
+    <div class="auc-tfoot">Closed ${aucUkTime(s.endAt,true)} UK time</div>`;
+  const target = st==='scheduled' ? s.startAt : s.endAt;
+  const left = target-now, p=aucSplit(left);
+  const urgent = st==='open' && left < 3600000;
+  const cell=(v,l)=>`<div class="auc-tcell"><b>${String(v).padStart(2,'0')}</b><span>${l}</span></div>`;
+  return `<div class="auc-tlabel">${st==='scheduled'?'Bidding opens in':'Bidding closes in'}</div>
+    <div class="auc-tdigits${urgent?' urgent':''}">${cell(p.d,'Days')}${cell(p.h,'Hrs')}${cell(p.m,'Min')}${cell(p.s,'Sec')}</div>
+    <div class="auc-tfoot">${st==='scheduled'?'Opens':'Closes'} ${aucUkTime(target,true)} UK time${
+      s.softClose>0 && st==='open' && left < s.softClose*60000 ? '<br><b class="auc-softlive">Soft close active: a new bid adds time</b>' : ''}</div>`;
+}
+
+function aucLotCard(l, i, mine, st, s){
+  const specs=[`<span class="reg">${aucEsc(aucRegLabel(l.reg))}</span>`];
+  if(l.colour) specs.push(`<span>${aucEsc(l.colour)}</span>`);
+  const mil=aucMileage(l.mileage); if(mil) specs.push(`<span>${aucEsc(mil)}</span>`);
+  let bid = mine
+    ? `<div class="auc-mybid"><span>Your bid</span><b>${aucMoney(mine.amount)}</b><em>placed ${aucUkTime(mine.ts)}</em>${
+        l.reserve!=null ? (mine.amount>=l.reserve ? '<i class="auc-resflag met">Meets reserve</i>' : '<i class="auc-resflag below">Below reserve</i>') : ''}</div>`
+    : `<div class="auc-nobid">${st==='closed'?'You did not bid on this bike.':'You have not bid on this bike yet.'}</div>`;
+  if(l.showHighest){
+    let pos='';
+    if(mine && l.highestBid!=null) pos = l.youLead ? '<i class="auc-resflag met">You are the highest bidder</i>'
+                                                  : '<i class="auc-resflag below">You have been outbid</i>';
+    bid = `<div class="auc-high"><span>Current highest bid</span><b>${l.highestBid!=null?aucMoney(l.highestBid):'No bids yet'}</b>${pos}</div>` + bid;
+  }
+  let controls='';
+  if(st==='open'){
+    controls=`<div class="auc-bidrow">
+        <div class="auc-input"><span>£</span><input type="number" id="aucIn-${i}" min="1" step="1" inputmode="numeric"
+          placeholder="${mine?'New amount':'Your bid'}" aria-label="Bid amount for ${aucEsc(l.model)}"
+          onkeydown="if(event.key==='Enter')aucSubmitBid(${i})"></div>
+        <button class="auc-bidbtn" onclick="aucSubmitBid(${i})">${mine?'Update bid':'Place bid'}</button>
+      </div>${mine?`<button class="auc-withdraw" onclick="aucWithdraw(${i})">Withdraw my bid</button>`:''}`;
+  } else if(st==='scheduled'){
+    controls=`<div class="auc-locked">Bidding opens ${aucUkTime(s.startAt,true)} UK time.</div>`;
+  } else {
+    controls=`<div class="auc-locked">Bidding has closed. Ducati will be in touch with the successful dealer.</div>`;
+  }
+  return `<div class="auc-lot${mine?' has-bid':''}">
+    <div class="auc-lot-top">
+      <div class="auc-model">${aucEsc(l.model)}</div>
+      <div class="auc-rrp">${l.rrp!=null?`<span>Est. RRP</span><b>${aucMoney(l.rrp)}</b>`:''}
+        ${l.reserve!=null?`<span class="auc-res-lbl">Reserve</span><b class="auc-res-val">${aucMoney(l.reserve)}</b>`:''}</div>
+    </div>
+    <div class="auc-specs">${specs.join('')}</div>
+    ${l.vin?`<div class="auc-vin">VIN ${aucEsc(l.vin)}</div>`:''}
+    ${l.description?`<div class="auc-desc">${aucEsc(l.description)}</div>`:'<div class="auc-desc"></div>'}
+    <div class="auc-bidbox">${bid}${controls}</div>
+  </div>`;
+}
+
+function renderAuction(){
+  const d=AUC.data, mount=document.getElementById('auc-content'); if(!d) return;
+  const s=d.settings||{}, lots=d.lots||[], my=d.myBids||{};
+  const now=Date.now()+AUC.offset, st=aucStatusAt(s, now);
+  AUC.lastStatus=st;
+  if(st==='unset' || !lots.length){
+    clearInterval(AUC.timer);
+    mount.innerHTML=`<div class="auc-empty"><b>No auction running right now</b>When the next bike auction opens, the bikes will appear here and you can bid on them.</div>`;
+    return;
+  }
+  const withBid=lots.filter(l=>my[l.id]);
+  const total=withBid.reduce((a,l)=>a+my[l.id].amount,0);
+  const groups=[];
+  lots.forEach((l,i)=>{ const name=l.fleet||'Bikes'; let g=groups.find(x=>x.name===name); if(!g){ g={name,items:[]}; groups.push(g); } g.items.push({l,i}); });
+  const eyebrow = st==='open' ? '<span class="auc-live"></span>Live auction' : st==='scheduled' ? 'Opening soon' : 'Auction closed';
+  mount.innerHTML=`
+    <div class="auc-hero">
+      <div>
+        <div class="auc-eyebrow">${eyebrow}</div>
+        <div class="auc-title">${aucEsc(s.title||'Bike Auction')}</div>
+        <div class="auc-hero-sub">${aucEsc(currentDealer)} · ${lots.length} bike${lots.length===1?'':'s'}${lots.some(l=>l.showHighest)?'':' · sealed bids'}</div>
+      </div>
+      <div class="auc-timer" id="aucTimer">${aucTimerHtml(s, now, st)}</div>
+    </div>
+    <div class="auc-rules"><b>How it works:</b> ${lots.some(l=>l.showHighest)
+        ? `other dealers never see who is bidding. Where a bike shows its current highest bid, you can see the amount to beat but not who placed it; on all other bikes bids are sealed.`
+        : `bids are sealed, so other dealers can't see your bid and you can't see theirs.`}
+      You can change or withdraw your bid at any time until the auction closes. All bids are in GBP.
+      ${s.softClose>0?`<br><b>Soft close:</b> any bid placed in the final ${s.softClose} minute${s.softClose==1?'':'s'} extends the closing time to ${s.softClose} minute${s.softClose==1?'':'s'} after that bid, so there's always time to respond.`:''}
+      ${s.notes?'<br>'+aucLinkify(aucEsc(s.notes)).replace(/\n/g,'<br>'):''}</div>
+    <div class="auc-mine">You have bid on <b>${withBid.length}</b> of ${lots.length} bikes${withBid.length?` · total <b>${aucMoney(total)}</b>`:''}</div>
+    ${groups.map(g=>`<div class="shead"><h3>${aucEsc(g.name)}</h3><div class="rule"></div></div>
+      <div class="auc-grid">${g.items.map(x=>aucLotCard(x.l, x.i, my[x.l.id], st, s)).join('')}</div>`).join('')}
+  `;
+  aucStartTimer();
+}
+
+function aucStartTimer(){
+  clearInterval(AUC.timer);
+  AUC.timer=setInterval(()=>{
+    const el=document.getElementById('aucTimer');
+    if(!AUC.data || !el) return;
+    const s=AUC.data.settings, now=Date.now()+AUC.offset, st=aucStatusAt(s, now);
+    if(st!==AUC.lastStatus){
+      // With soft close on, another dealer's late bid may have moved the close. Ask the
+      // server before showing "closed"; the refresh re-renders either way.
+      if(AUC.lastStatus==='open' && st==='closed' && s.softClose>0){
+        el.innerHTML='<div class="auc-tlabel">Closing</div><div class="auc-tclosed">Checking for late bids…</div>';
+        aucQuietRefresh(true); return;
+      }
+      renderAuction(); return;   // flips the bid buttons on at open, off at close
+    }
+    el.innerHTML=aucTimerHtml(s, now, st);
+    AUC.ticks=(AUC.ticks||0)+1;
+    // every 30s if high bids are shown; every 15s inside the soft-close window so extensions show up
+    const inWindow = s.softClose>0 && st==='open' && (s.endAt-now) < (s.softClose+1)*60000;
+    if(st==='open' && ((inWindow && AUC.ticks%15===0) || (AUC.ticks%30===0 && AUC.data.lots.some(l=>l.showHighest)))) aucQuietRefresh();
+  },1000);
+}
+
+// Pulls fresh data (highest bids, soft-close extensions) without wiping anything
+// the dealer is typing: the timer always picks up a new closing time, but the
+// cards only re-render when they're not mid-entry or the open/closed state changed.
+async function aucQuietRefresh(force){
+  const tab=document.getElementById('tab-auction');
+  if(AUC.busy || AUC.refreshing || !currentPassword || !tab.classList.contains('active')) return;
+  AUC.refreshing=true;
+  try{
+    const j=await aucPost({action:'auctionDealer',dealer:currentDealer,password:currentPassword});
+    if(j.ok && !AUC.busy){
+      aucApply(j);
+      const st=aucStatusAt(j.settings, Date.now()+AUC.offset);
+      const typing=[...document.querySelectorAll('#auc-content input')].some(x=>x.value || x===document.activeElement);
+      if(force || !typing || st!==AUC.lastStatus){ const y=window.scrollY; renderAuction(); window.scrollTo(0,y); }
+    }
+  }catch(e){}
+  AUC.refreshing=false;
+}
+
+// ── Dealer: bidding ─────────────────────────────────────────────────────────
+async function aucSubmitBid(i){
+  if(AUC.busy || !AUC.data) return;
+  const l=AUC.data.lots[i], inp=document.getElementById('aucIn-'+i);
+  const raw=String(inp.value).replace(/[£,\s]/g,''), amt=Number(raw);
+  if(!raw || !isFinite(amt) || amt<1 || Math.round(amt)!==amt){ aucToast('Please enter a whole number of pounds, for example 15000.', true); inp.focus(); return; }
+  if(amt>1000000){ aucToast('That amount looks too high. Please check it and try again.', true); inp.focus(); return; }
+  const mine=(AUC.data.myBids||{})[l.id];
+  if(mine && mine.amount===amt){ aucToast('That is already your bid on this bike.', true); return; }
+  const label=`${l.model} (${aucRegLabel(l.reg)})`;
+  const q = mine ? `Change your bid on the ${label} from ${aucMoney(mine.amount)} to ${aucMoney(amt)}?`
+                 : `Place a bid of ${aucMoney(amt)} on the ${label}?`;
+  if(!confirm(q)) return;
+  await aucSendBid(l, amt, mine ? `Your bid on the ${label} is now ${aucMoney(amt)}.` : `Bid of ${aucMoney(amt)} placed on the ${label}.`);
+}
+async function aucWithdraw(i){
+  if(AUC.busy || !AUC.data) return;
+  const l=AUC.data.lots[i], label=`${l.model} (${aucRegLabel(l.reg)})`;
+  if(!confirm(`Withdraw your bid on the ${label}?`)) return;
+  await aucSendBid(l, 0, `Your bid on the ${label} has been withdrawn.`);
+}
+async function aucSendBid(l, amount, okMsg){
+  AUC.busy=true;
+  aucOverlay(true, amount ? 'Placing your bid…' : 'Withdrawing your bid…');
+  try{
+    const j=await aucPost({action:'auctionBid',dealer:currentDealer,password:currentPassword,lotId:l.id,amount});
+    aucOverlay(false);
+    if(j.ok){
+      const prevEnd=AUC.data&&AUC.data.settings.endAt;
+      aucApply(j); renderAuction();
+      aucToast(okMsg + (prevEnd && j.settings.endAt>prevEnd ? ` Soft close: the auction now closes at ${aucUkTime(j.settings.endAt)}.` : ''), false);
+    }
+    else if(j.error==='auth'){ currentPassword=''; showAuctionLogin(); document.getElementById('aucLoginError').textContent='Please sign in again.'; }
+    else {
+      const msg={ closed:'The auction has closed, so this bid was not accepted.', notopen:'Bidding has not opened yet.',
+        amount:'Please enter a valid bid amount.', lot:'This bike is no longer in the auction.', nobid:'You have no bid on this bike to withdraw.' }[j.error]
+        || 'Your bid could not be saved. Please try again.';
+      await loadAuction(); aucToast(msg,true);
+    }
+  }catch(e){
+    aucOverlay(false);
+    aucToast('Your bid could not be saved. Please check your connection and try again.', true);
+  }
+  AUC.busy=false;
+}
+
+// ── Admin: pane switching ───────────────────────────────────────────────────
+function switchAdminPane(p){
+  document.querySelectorAll('.admin-subtab').forEach(b=>b.classList.toggle('active', b.dataset.pane===p));
+  document.getElementById('adminPane-main').style.display = p==='main' ? 'block' : 'none';
+  document.getElementById('adminPane-auction').style.display = p==='auction' ? 'block' : 'none';
+  if(p==='auction') loadAuctionAdmin();
+}
+function resetAuctionAdmin(){
+  clearInterval(AUC_ADMIN.timer);
+  Object.assign(AUC_ADMIN,{data:null,lots:[],dirty:false,open:{},loaded:false,settingsFilled:false,lastStatus:null,ticks:0});
+  switchAdminPane('main');
+}
+
+// ── Admin: load ─────────────────────────────────────────────────────────────
+async function loadAuctionAdmin(silent){
+  if(!adminAuthed) return;
+  if(!silent && !AUC_ADMIN.loaded) document.getElementById('aucAdmResults').innerHTML='<div class="empty-state">Loading…</div>';
+  try{
+    const j=await aucPost({action:'auctionAdminGet',password:currentAdminPassword});
+    if(!j.ok){ if(!silent) document.getElementById('aucAdmResults').innerHTML='<div class="empty-state">Could not load the auction.</div>'; return; }
+    AUC_ADMIN.data=j; AUC_ADMIN.offset=(j.serverNow||Date.now())-Date.now();
+    const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#aucAdmLots');
+    if(!AUC_ADMIN.dirty && !(silent && editing)){ AUC_ADMIN.lots=(j.lots||[]).map(l=>Object.assign({},l)); renderAucAdminLots(); }
+    if(!AUC_ADMIN.settingsFilled) aucFillSettings();
+    else {   // a soft-close extension moved the end time: follow it unless you've edited the field
+      const endIn=document.getElementById('aucAdmEnd'), srvEnd=j.settings&&j.settings.endAt;
+      if(srvEnd && srvEnd!==AUC_ADMIN.filledEnd && endIn.value===aucToLocalInput(AUC_ADMIN.filledEnd)){
+        endIn.value=aucToLocalInput(srvEnd); AUC_ADMIN.filledEnd=srvEnd;
+      }
+    }
+    AUC_ADMIN.loaded=true;
+    renderAucAdminResults(); aucAdminStatus(); aucAdminStartTimer();
+  }catch(e){
+    if(!silent) document.getElementById('aucAdmResults').innerHTML='<div class="empty-state">Could not load the auction right now.</div>';
+  }
+}
+function aucToLocalInput(ms){
+  if(!ms) return ''; const d=new Date(ms), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function aucFillSettings(){
+  const s=(AUC_ADMIN.data&&AUC_ADMIN.data.settings)||{};
+  document.getElementById('aucAdmTitle').value=s.title||'';
+  document.getElementById('aucAdmNotes').value=s.notes||'';
+  document.getElementById('aucAdmStart').value=aucToLocalInput(s.startAt);
+  document.getElementById('aucAdmSoft').value=s.softClose>0?s.softClose:'';
+  AUC_ADMIN.filledEnd=s.endAt;
+  document.getElementById('aucAdmEnd').value=aucToLocalInput(s.endAt);
+  AUC_ADMIN.settingsFilled=true;
+}
+function aucAdminStatus(){
+  const el=document.getElementById('aucAdmStatus'); const s=AUC_ADMIN.data&&AUC_ADMIN.data.settings; if(!el||!s) return;
+  const now=Date.now()+AUC_ADMIN.offset, st=aucStatusAt(s,now);
+  const left=t=>{ const p=aucSplit(t-now); return (p.d?p.d+'d ':'')+p.h+'h '+String(p.m).padStart(2,'0')+'m '+String(p.s).padStart(2,'0')+'s'; };
+  el.className='auc-chip '+st;
+  el.textContent = st==='unset' ? 'Not scheduled: set a closing time'
+    : st==='scheduled' ? 'Scheduled · opens in '+left(s.startAt)
+    : st==='open' ? 'Live · closes in '+left(s.endAt)+(s.softClose>0?' · soft close '+s.softClose+' min':'')
+    : 'Closed '+aucUkTime(s.endAt,true);
+  if(AUC_ADMIN.lastStatus && AUC_ADMIN.lastStatus!==st) renderAucAdminResults();
+  AUC_ADMIN.lastStatus=st;
+}
+function aucAdminStartTimer(){
+  clearInterval(AUC_ADMIN.timer);
+  AUC_ADMIN.timer=setInterval(()=>{
+    const pane=document.getElementById('adminPane-auction');
+    if(!adminAuthed || !pane || pane.style.display==='none') return;
+    aucAdminStatus();
+    if(++AUC_ADMIN.ticks % 60 === 0) loadAuctionAdmin(true);   // pull in new bids once a minute
+  },1000);
+}
+
+// ── Admin: settings ─────────────────────────────────────────────────────────
+async function saveAuctionSettings(closeNow){
+  const title=document.getElementById('aucAdmTitle').value.trim();
+  const notes=document.getElementById('aucAdmNotes').value.trim();
+  const sv=document.getElementById('aucAdmStart').value, ev=document.getElementById('aucAdmEnd').value;
+  const softRaw=document.getElementById('aucAdmSoft').value.trim();
+  const softClose = softRaw==='' ? 0 : Number(softRaw);
+  if(!isFinite(softClose) || softClose<0 || softClose>60 || Math.round(softClose)!==softClose){ alert('Soft close must be a whole number of minutes between 0 and 60.'); return; }
+  let startAt = sv ? new Date(sv).getTime() : null;
+  let endAt = ev ? new Date(ev).getTime() : null;
+  if(closeNow){
+    if(!confirm('Close the auction now? Dealers will no longer be able to bid.')) return;
+    endAt = Date.now()+AUC_ADMIN.offset;
+    if(startAt && startAt>=endAt) startAt=null;
+  }
+  if(!endAt){ alert('Please set when bidding closes.'); return; }
+  if(startAt && startAt>=endAt){ alert('Bidding must open before it closes.'); return; }
+  if(!closeNow && endAt < Date.now() && !confirm('That closing time is in the past, so the auction will show as closed. Save anyway?')) return;
+  aucOverlay(true,'Saving…');
+  try{
+    const j=await aucPost({action:'auctionAdminSaveSettings',password:currentAdminPassword,settings:{title,notesB64:aucB64(notes),startAt,endAt,softClose}});
+    aucOverlay(false);
+    if(!j.ok){ alert('Could not save: '+(j.error||'unknown error')); return; }
+    AUC_ADMIN.settingsFilled=false; await loadAuctionAdmin(true);
+  }catch(e){ aucOverlay(false); alert('Could not save right now: '+(e&&e.message||'unknown error')+'.\n\nPlease try again.'); }
+}
+
+// ── Admin: bikes + reserves ─────────────────────────────────────────────────
+function aucAdmSetDirty(d){
+  AUC_ADMIN.dirty=d;
+  document.getElementById('aucAdmLotsSave').disabled=!d;
+  document.getElementById('aucAdmLotsDiscard').disabled=!d;
+  document.getElementById('aucAdmDirty').classList.toggle('show', d);
+}
+function renderAucAdminLots(){
+  const m=document.getElementById('aucAdmLots'), lots=AUC_ADMIN.lots;
+  aucAdmSetDirty(AUC_ADMIN.dirty);
+  if(!lots.length){ m.innerHTML='<div class="empty-state">No bikes loaded yet. Upload the auction spreadsheet to add them.</div>'; return; }
+  m.innerHTML=`<div class="admintablewrap"><table class="adminperftable">
+    <thead><tr><th>Bike</th><th>Reg</th><th>Mileage</th><th class="n">Est. RRP (£)</th><th class="n">Reserve (£)</th><th>Show reserve<br><button class="auc-linkbtn" onclick="aucAdmShowAll('showReserve',true)">all</button> / <button class="auc-linkbtn" onclick="aucAdmShowAll('showReserve',false)">none</button></th><th>Show high bid<br><button class="auc-linkbtn" onclick="aucAdmShowAll('showHighest',true)">all</button> / <button class="auc-linkbtn" onclick="aucAdmShowAll('showHighest',false)">none</button></th><th></th></tr></thead>
+    <tbody>${lots.map((l,i)=>`<tr>
+      <td class="wrap"><b>${aucEsc(l.model)}</b><div class="auc-small">${aucEsc(l.fleet||'')}${l.colour?' · '+aucEsc(l.colour):''}${l.vin?' · '+aucEsc(l.vin):''}</div></td>
+      <td>${aucEsc(aucRegLabel(l.reg))}</td>
+      <td>${aucEsc(aucMileage(l.mileage))}</td>
+      <td class="n"><input class="auc-cell" type="number" min="0" step="1" value="${l.rrp==null?'':l.rrp}" oninput="aucAdmEdit(${i},'rrp',this.value)"></td>
+      <td class="n"><input class="auc-cell" type="number" min="0" step="1" value="${l.reserve==null?'':l.reserve}" oninput="aucAdmEdit(${i},'reserve',this.value)"></td>
+      <td><label class="auc-switch" title="${l.showReserve?'Dealers can see this reserve':'Reserve hidden from dealers'}"><input type="checkbox" ${l.showReserve?'checked':''} onchange="aucAdmToggleShow(${i},'showReserve',this.checked)"><span>${l.showReserve?'Shown':'Hidden'}</span></label></td>
+      <td><label class="auc-switch" title="${l.showHighest?'Dealers can see the current highest bid (not who placed it)':'Bids sealed on this bike'}"><input type="checkbox" ${l.showHighest?'checked':''} onchange="aucAdmToggleShow(${i},'showHighest',this.checked)"><span>${l.showHighest?'Shown':'Hidden'}</span></label></td>
+      <td><button class="auc-x" title="Remove this bike" onclick="aucAdmRemove(${i})">✕</button></td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+function aucAdmEdit(i, field, v){
+  AUC_ADMIN.lots[i][field]=aucNumOrNull(v);
+  aucAdmSetDirty(true);
+  renderAucAdminResults();   // reserve status updates as you type
+}
+function aucAdmToggleShow(i, field, on){
+  AUC_ADMIN.lots[i][field]=!!on; aucAdmSetDirty(true); renderAucAdminLots(); renderAucAdminResults();
+}
+function aucAdmShowAll(field, on){
+  if(!AUC_ADMIN.lots.length) return;
+  AUC_ADMIN.lots.forEach(l=>l[field]=!!on); aucAdmSetDirty(true); renderAucAdminLots(); renderAucAdminResults();
+}
+function aucAdmRemove(i){
+  const l=AUC_ADMIN.lots[i];
+  const n=(aucAdminCompute().byLot[l.id]||[]).length;
+  if(!confirm(`Remove the ${l.model} (${aucRegLabel(l.reg)}) from the auction?`+(n?`\n\nIt has ${n} live bid${n>1?'s':''}, which will be hidden (not deleted).`:''))) return;
+  AUC_ADMIN.lots.splice(i,1); aucAdmSetDirty(true); renderAucAdminLots(); renderAucAdminResults();
+}
+function discardAuctionLots(){
+  AUC_ADMIN.lots=((AUC_ADMIN.data&&AUC_ADMIN.data.lots)||[]).map(l=>Object.assign({},l));
+  aucAdmSetDirty(false); renderAucAdminLots(); renderAucAdminResults();
+}
+async function saveAuctionLots(){
+  aucOverlay(true,'Saving bikes…');
+  try{
+    const j=await aucPost({action:'auctionAdminSaveLots',password:currentAdminPassword,lots:AUC_ADMIN.lots});
+    aucOverlay(false);
+    if(!j.ok){ alert('Could not save: '+(j.error||'unknown error')); return; }
+    aucAdmSetDirty(false); await loadAuctionAdmin(true); renderAucAdminLots();
+  }catch(e){ aucOverlay(false); alert('Could not save right now: '+(e&&e.message||'unknown error')+'.\n\nPlease try again.'); }
+}
+
+// Reads the auction sheet by header text, not column position, so an added or
+// moved column doesn't shift everything. Section rows with no model
+// (e.g. "COMING UP FOR SALE NEXT") are skipped; Fleet carries down to the rows below it.
+function aucParseSheet(rows){
+  let h=-1;
+  for(let i=0;i<Math.min(rows.length,25);i++){ if((rows[i]||[]).some(c=>/^\s*model\s*$/i.test(String(c)))){ h=i; break; } }
+  if(h<0) throw new Error('No header row with a "Model" column was found.');
+  const hdr=rows[h].map(c=>String(c).trim().toLowerCase());
+  const col=re=>hdr.findIndex(c=>re.test(c));
+  const C={fleet:col(/fleet/), model:col(/^model/), reg:col(/^reg/), vin:col(/vin/), colour:col(/colou?r/),
+           mileage:col(/mileage|miles|hours/), desc:col(/info|desc/), rrp:col(/rrp/), reserve:col(/reserve/)};
+  const get=(r,k)=>C[k]<0 ? '' : (r[C[k]]==null ? '' : r[C[k]]);
+  const out=[], seen={}; let fleet='';
+  for(let i=h+1;i<rows.length;i++){
+    const r=rows[i]||[]; const model=String(get(r,'model')).trim(); const f=String(get(r,'fleet')).trim();
+    if(!model) continue;
+    if(f) fleet=f;
+    const vin=String(get(r,'vin')).trim().toUpperCase();
+    let id=vin||('LOT-'+(out.length+1)); while(seen[id]) id+='-B'; seen[id]=true;
+    const mil=get(r,'mileage');
+    out.push({ id, fleet, model, reg:String(get(r,'reg')).trim(), vin, colour:String(get(r,'colour')).trim(),
+      mileage: typeof mil==='number' ? String(mil) : String(mil).trim(), description:String(get(r,'desc')).trim(),
+      rrp:aucNumOrNull(get(r,'rrp')), reserve:aucNumOrNull(get(r,'reserve')), showReserve:false, showHighest:false });
+  }
+  if(!out.length) throw new Error('No bikes were found under the header row.');
+  return out;
+}
+function aucAdmUpload(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:true});
+      const parsed=aucParseSheet(rows);
+      const prev={}; AUC_ADMIN.lots.forEach(l=>prev[l.id]=l);
+      parsed.forEach(l=>{ const p=prev[l.id]; if(p){ if(l.rrp==null) l.rrp=p.rrp; if(l.reserve==null) l.reserve=p.reserve; l.showReserve=!!p.showReserve; l.showHighest=!!p.showHighest; } });
+      const byLot=aucAdminCompute().byLot, newIds=new Set(parsed.map(l=>l.id));
+      const dropped=Object.keys(byLot).filter(id=>!newIds.has(id) && AUC_ADMIN.lots.some(l=>l.id===id));
+      if(dropped.length && !confirm(`${dropped.length} bike${dropped.length>1?'s that have':' that has'} bids ${dropped.length>1?'are':'is'} not in this file. Their bids will be hidden (not deleted). Continue?`)) return;
+      AUC_ADMIN.lots=parsed; aucAdmSetDirty(true); renderAucAdminLots(); renderAucAdminResults();
+      const noRes=parsed.filter(l=>l.reserve==null).length;
+      alert(`Loaded ${parsed.length} bikes from ${file.name}.`+(noRes?`\n\n${noRes} have no hidden reserve yet. You can type them into the table.`:'')+`\n\nPress "Save bikes & reserves" to publish them to dealers.`);
+    }catch(err){ alert('Could not read that file. '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Admin: results ──────────────────────────────────────────────────────────
+// Latest record per dealer per bike is that dealer's bid (0 = withdrawn).
+// Ranking: highest amount first; on a tie, the earlier bid wins.
+function aucAdminCompute(){
+  const bids=((AUC_ADMIN.data&&AUC_ADMIN.data.bids)||[]).slice().sort((a,b)=>a.ts-b.ts);
+  const latest={};
+  bids.forEach(b=>{ latest[b.lotId+'||'+b.dealer.toLowerCase()]=b; });
+  const byLot={};
+  Object.values(latest).forEach(b=>{ if(b.amount>0) (byLot[b.lotId]=byLot[b.lotId]||[]).push(b); });
+  Object.values(byLot).forEach(list=>list.sort((a,b)=>b.amount-a.amount || a.ts-b.ts));
+  return {bids, latest, byLot};
+}
+function aucReserveState(l, top){
+  if(!top) return {cls:'none', text:'No bids'};
+  if(l.reserve==null) return {cls:'none', text:'No reserve set'};
+  return top.amount>=l.reserve ? {cls:'met', text:'Reserve met'} : {cls:'below', text:aucMoney(l.reserve-top.amount)+' below'};
+}
+function renderAucAdminResults(){
+  const mount=document.getElementById('aucAdmResults'), metrics=document.getElementById('aucAdmMetrics');
+  if(!AUC_ADMIN.data) return;
+  const lots=AUC_ADMIN.lots, {bids, byLot}=aucAdminCompute();
+  const liveDealers=new Set(); Object.values(byLot).forEach(list=>list.forEach(b=>liveDealers.add(b.dealer.toLowerCase())));
+  const withBids=lots.filter(l=>byLot[l.id]).length;
+  const met=lots.filter(l=>{ const t=(byLot[l.id]||[])[0]; return t && l.reserve!=null && t.amount>=l.reserve; }).length;
+  metrics.innerHTML=`
+    <div class="metric"><div class="metric-label">Bids received</div><div class="metric-val">${bids.filter(b=>b.amount>0).length}</div></div>
+    <div class="metric"><div class="metric-label">Dealers bidding</div><div class="metric-val">${liveDealers.size}</div></div>
+    <div class="metric"><div class="metric-label">Bikes with bids</div><div class="metric-val">${withBids}<span style="font-size:14px;color:#aaa;font-weight:400;"> / ${lots.length}</span></div></div>
+    <div class="metric"><div class="metric-label">Reserve met</div><div class="metric-val">${met}</div></div>`;
+  if(!lots.length){ mount.innerHTML='<div class="empty-state">No bikes in the auction yet.</div>'; return; }
+  const rows=lots.map(l=>{
+    const list=byLot[l.id]||[], top=list[0], rs=aucReserveState(l, top), open=!!AUC_ADMIN.open[l.id];
+    const detail = open ? `<tr class="auc-res-detail"><td colspan="6">${list.length ? `<div class="auc-rank">${list.map((b,k)=>{
+        const edits=bids.filter(x=>x.lotId===l.id && x.dealer.toLowerCase()===b.dealer.toLowerCase()).length;
+        return `<span class="r">${k+1}</span><span>${aucEsc(b.dealer)}${edits>1?` <span class="auc-small">(${edits} changes)</span>`:''}</span>
+          <span class="a">${aucMoney(b.amount)}</span><span class="t">${aucUkTime(b.ts)}</span>`; }).join('')}</div>`
+        : '<span class="auc-small">No live bids on this bike.</span>'}</td></tr>` : '';
+    return `<tr class="auc-res-row${open?' open':''}" onclick="aucToggleLot('${aucEsc(l.id)}')">
+      <td class="wrap"><span class="auc-caret">▸</span> <b>${aucEsc(l.model)}</b> <span class="auc-small">${aucEsc(aucRegLabel(l.reg))}</span></td>
+      <td class="n">${list.length}</td>
+      <td class="n"><b>${top?aucMoney(top.amount):'-'}</b>${l.showHighest?'<div class="auc-small">shown</div>':''}</td>
+      <td>${top?aucEsc(top.dealer):'<span class="auc-small">-</span>'}</td>
+      <td class="n">${aucMoney(l.reserve)}${l.showReserve&&l.reserve!=null?'<div class="auc-small">shown</div>':''}</td>
+      <td><span class="auc-pill ${rs.cls}">${rs.text}</span></td>
+    </tr>${detail}`;
+  }).join('');
+  mount.innerHTML=`<div class="admintablewrap" style="max-height:none;"><table class="adminperftable">
+    <thead><tr><th>Bike</th><th class="n">Bidders</th><th class="n">Highest bid</th><th>Leading dealer</th><th class="n">Reserve</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+function aucToggleLot(id){ AUC_ADMIN.open[id]=!AUC_ADMIN.open[id]; renderAucAdminResults(); }
+
+// ── Admin: CSV export ───────────────────────────────────────────────────────
+function aucCsv(rows){
+  return '﻿'+rows.map(r=>r.map(v=>{ const s=v==null?'':String(v); return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\r\n');
+}
+function aucDownload(name, text){
+  const blob=new Blob([text],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
+function aucFileStem(){
+  const t=((AUC_ADMIN.data&&AUC_ADMIN.data.settings&&AUC_ADMIN.data.settings.title)||'Bike_Auction').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return t+'_'+new Date().toISOString().slice(0,10);
+}
+function aucExportCheck(){
+  if(!AUC_ADMIN.data){ alert('The auction has not loaded yet.'); return false; }
+  const st=aucStatusAt(AUC_ADMIN.data.settings, Date.now()+AUC_ADMIN.offset);
+  return st!=='open' || confirm('The auction is still open, so these figures may change. Export anyway?');
+}
+function aucUkFull(ms){ return new Date(ms).toLocaleString('en-GB',{timeZone:'Europe/London',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace(',',''); }
+function exportAuctionResultsCsv(){
+  if(!aucExportCheck()) return;
+  const {byLot}=aucAdminCompute();
+  const rows=[['Fleet','Model','Reg','VIN','Colour','Mileage','Description','Estimated RRP (GBP)','Reserve (GBP)','Reserve shown to dealers','Highest bid shown to dealers',
+    'Number of bidders','Highest bid (GBP)','Highest bidder','Highest bid placed (UK)','Reserve met','Shortfall to reserve (GBP)',
+    'Second bid (GBP)','Second bidder','All bids (highest first)']];
+  AUC_ADMIN.lots.forEach(l=>{
+    const list=byLot[l.id]||[], t=list[0], s2=list[1];
+    rows.push([l.fleet,l.model,aucRegLabel(l.reg),l.vin,l.colour,l.mileage,l.description,l.rrp,l.reserve,l.showReserve?'Yes':'No',l.showHighest?'Yes':'No',
+      list.length, t?t.amount:'', t?t.dealer:'', t?aucUkFull(t.ts):'',
+      t&&l.reserve!=null ? (t.amount>=l.reserve?'Yes':'No') : '',
+      t&&l.reserve!=null&&t.amount<l.reserve ? l.reserve-t.amount : '',
+      s2?s2.amount:'', s2?s2.dealer:'', list.map(b=>`${b.dealer}: £${b.amount}`).join('; ')]);
+  });
+  aucDownload(aucFileStem()+'_Results.csv', aucCsv(rows));
+}
+function exportAuctionBidsCsv(){
+  if(!aucExportCheck()) return;
+  const {bids, latest}=aucAdminCompute();
+  const lotById={}; ((AUC_ADMIN.data&&AUC_ADMIN.data.lots)||[]).concat(AUC_ADMIN.lots).forEach(l=>lotById[l.id]=l);
+  const count={};
+  const rows=[['Submitted (UK)','Dealer','Model','Reg','VIN','Bid (GBP)','Type','Current bid']];
+  bids.forEach(b=>{
+    const k=b.lotId+'||'+b.dealer.toLowerCase(); count[k]=(count[k]||0)+1;
+    const l=lotById[b.lotId]||{model:'(removed bike)',reg:'',vin:b.lotId};
+    const type = b.amount===0 ? 'Withdrawn' : count[k]===1 ? 'Bid' : 'Amended';
+    rows.push([aucUkFull(b.ts), b.dealer, l.model, aucRegLabel(l.reg), l.vin||b.lotId, b.amount||'', type, (latest[k]===b && b.amount>0)?'Yes':'No']);
+  });
+  aucDownload(aucFileStem()+'_All_Bids.csv', aucCsv(rows));
+}
+
+initAuctionPicker();
 </script>
 </body>
 </html>
